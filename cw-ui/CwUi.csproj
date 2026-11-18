@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CwUi</RootNamespace>
+    <AssemblyName>CwUi</AssemblyName>
+    <!-- 插件是类库，运行时由客户端 Assembly.LoadFrom 载入 -->
+    <OutputType>Library</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 契约是唯一必需的编译期依赖。
+         PrivateAssets=all 阻止向下游传递，ExcludeAssets=runtime 阻止复制到本插件输出目录：
+         宿主已加载同一份契约，插件目录再放一份会导致类型身份分裂。 -->
+    <PackageReference Include="CnCNetClient.Plugin.Abstractions" Version="1.0.0"
+                      PrivateAssets="all" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 自描述与样式随输出，便于直接取 bin 目录产物部署到 Plugins/cw-ui/ -->
+    <Content Include="plugin.ini" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="plugin.css" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,42 @@
+/* CW UI 插件样式：由 plugin.ini [Plugin] Style 声明，客户端经内容伺服注入。
+   仅使用宿主已有 CSS 变量（tokens），自动跟随主题。 */
+
+.cw-page { padding: 24px; }
+
+.cw-card {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+}
+
+.cw-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.cw-title { font-size: 20px; font-weight: 700; color: var(--cyan); }
+.cw-en { font-family: var(--font-orbitron); font-size: 10px; letter-spacing: 2px; color: var(--dim); }
+
+.cw-body { margin: 0 0 16px; font-size: 14px; line-height: 1.6; }
+
+.cw-actions { display: flex; justify-content: flex-end; }
+.cw-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  font-family: var(--font-cn);
+}
+.cw-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+/* 设置页侧栏卡片（page.settings.aside） */
+.cw-aside {
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px dashed var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cw-aside-t { font-size: 13px; font-weight: 700; color: var(--cyan); }
+.cw-aside-d { font-size: 11px; line-height: 1.5; color: var(--dim); }
