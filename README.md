@@ -19,7 +19,7 @@ cw-ui/                     CW UI 插件（Razor 类库）
 ## 构建
 
 前置：客户端仓库已产出契约包
-`blazor-cncnet-client/dist/nuget/CnCNetClient.Plugin.Abstractions.1.0.0.nupkg`
+`blazor-cncnet-client/dist/nuget/CnCNetClient.Plugin.Abstractions.1.1.0.nupkg`
 （`tools/publish.ps1 -PackPluginSdk`），且 `NuGet.config` 中本地源路径正确。
 
 ```powershell

@@ -1,5 +1,7 @@
-@* 追加型槽位 page.settings.aside：设置页左侧栏卡片。 *@
-<div class="cw-aside">
-    <span class="cw-aside-t">CW UI</span>
-    <span class="cw-aside-d">插件已加载（cw-ui）</span>
-</div>
+@inject NavigationManager Nav
+
+@* 追加型槽位 page.settings.aside：设置页左侧栏入口。 *@
+<button type="button" class="set-nav-item" @onclick='() => Nav.NavigateTo("/plugin/cw-ui/reshade")'>
+    <span class="set-nav-ic">◈</span>
+    <span class="set-nav-tx"><span class="cn">画质增强</span></span>
+</button>

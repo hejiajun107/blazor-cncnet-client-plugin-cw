@@ -1,0 +1,293 @@
+@using System;
+@using System.Collections.Generic;
+@using System.Linq;
+@using BlazorCncnetClient.Infrastructure
+@inject ExtrasService Extras
+@inject Microsoft.JSInterop.IJSRuntime JS
+@* 主菜单贴片菜单（替换槽位 page.menu.list）：只负责外观与摆放，
+   条目数据与点击回调均由宿主传入，行为（登录/路由/退出）不重复实现。
+   另补回旧客户端自己加的入口：资料库（大贴片）+ QQ群 / 哔哩哔哩 / 创意工坊（外链按钮）。 *@
+
+<nav class="cw-menu">
+    <div class="cw-mm-col">
+        @foreach (TileCell cell in _left)
+        {
+            @RenderCell(cell)
+        }
+    </div>
+
+    <div class="cw-mm-col">
+        @foreach (TileCell cell in _right)
+        {
+            @RenderCell(cell)
+        }
+    </div>
+
+    @* 底部：资料库用整行大贴片（旧客户端 btnDatabase），其后是宿主新增的入口（地图编辑器 / 附加功能） *@
+    <div class="cw-mm-bottom">
+        @Tile(DocsKey, wide: true)
+        @foreach (string key in _bottom)
+        {
+            @Tile(key)
+        }
+    </div>
+
+    @* 旧客户端自己加的外链按钮（原 XNA MainMenu.cs：btnQQ / btnBili / btnFactory） *@
+    <div class="cw-mm-links">
+        @foreach (CwLink link in Links)
+        {
+            <button type="button" class="cw-mm-link" @onclick="() => OpenLink(link)">
+                <span class="cw-mm-link-ic" aria-hidden="true">@((MarkupString)link.Icon)</span>
+                <span>@link.Label</span>
+            </button>
+        }
+    </div>
+
+    @* 右下角快速退出（与网格里的「退出」贴片同一宿主行为：二次确认后关闭客户端） *@
+    <div class="cw-mm-exitrow">
+        <button type="button" class="cw-mm-exit" @onclick='() => OnActivated.InvokeAsync("exit")'>
+            <span class="cw-mm-exit-ic" aria-hidden="true">@((MarkupString)IconSvg("exit"))</span>
+            <span>退出</span>
+        </button>
+    </div>
+</nav>
+
+@code {
+    /// <summary>两列中已放置的单元：单贴片或一对半宽贴片；单位高度 1，主项高为 2。</summary>
+    private sealed class TileCell
+    {
+        public string? Key { get; init; }
+        public string[] Pair { get; init; } = Array.Empty<string>();
+        public bool Tall { get; init; }
+        public double Units => Pair.Length > 0 ? 1 : (Tall ? 2 : 1);
+    }
+
+    /// <summary>旧客户端固定摆放的键；其余键（宿主新增/插件菜单项）自动落到最底部两列。</summary>
+    private static readonly HashSet<string> KnownKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "campaign", "multiplayer", "skirmish", "lan", "load", "lore", "stats", "settings", "credits", "exit"
+    };
+
+    [Parameter]
+    public IReadOnlyList<MainMenuTileItem> Items { get; set; } = Array.Empty<MainMenuTileItem>();
+
+    /// <summary>点击回调：宿主按 Key 分发（导航 / 登录 / 鸣谢 / 退出…）。</summary>
+    [Parameter]
+    public EventCallback<string> OnActivated { get; set; }
+
+    private Dictionary<string, MainMenuTileItem> _items = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<TileCell> _left = new();
+    private readonly List<TileCell> _right = new();
+    private readonly List<string> _bottom = new();
+
+    protected override void OnParametersSet()
+    {
+        _items = Items.ToDictionary(i => i.Key, i => i, StringComparer.OrdinalIgnoreCase);
+        // 老客户端的「资料库」(btnDatabase) 新客户端没有对应入口，这里补一枚插件自有的大贴片
+        _items[DocsKey] = new MainMenuTileItem(DocsKey, "资料库", "Database", "❖", false, true);
+        BuildColumns();
+    }
+
+    private bool Has(string key) => _items.ContainsKey(key);
+
+    /// <summary>
+    /// 按旧客户端排法先放入固定位置：左列 战役 / 遭遇战 / 鸣谢·载入，
+    /// 右列 多人游戏 / 局域网 / 设置 / 统计·退出；某项被宿主隐藏时，从较高列挪一个普通项补齐。
+    /// 老客户端的「资料库」固定在两列下方的整行大贴片。
+    /// </summary>
+    private void BuildColumns()
+    {
+        _left.Clear();
+        _right.Clear();
+        _bottom.Clear();
+
+        AddSingle(_left, "campaign", tall: true);
+        AddSingle(_right, "multiplayer", tall: true);
+        AddSingle(_left, "skirmish");
+        AddSingle(_right, "lan", tall: true);
+        AddPair(_left, "credits", "load");
+        AddSingle(_right, "settings");
+        AddPair(_right, "stats", "exit");
+
+        // 两列高度差超过 1 个单位时，把较高列末尾的普通项挪到另一列，避免出现大块空洞
+        for (int guard = 0; guard < 4; guard++)
+        {
+            double dl = _left.Sum(c => c.Units);
+            double dr = _right.Sum(c => c.Units);
+            if (Math.Abs(dl - dr) <= 1)
+                break;
+
+            List<TileCell> from = dl > dr ? _left : _right;
+            List<TileCell> to = dl > dr ? _right : _left;
+
+            int index = from.FindLastIndex(c => !c.Tall && c.Pair.Length == 0);
+            if (index < 0)
+                break;
+
+            TileCell moving = from[index];
+            from.RemoveAt(index);
+            to.Add(moving);
+        }
+
+        foreach (MainMenuTileItem item in Items)
+        {
+            if (!KnownKeys.Contains(item.Key))
+                _bottom.Add(item.Key);
+        }
+    }
+
+    private void AddSingle(List<TileCell> column, string key, bool tall = false)
+    {
+        if (!Has(key))
+            return;
+        column.Add(new TileCell { Key = key, Tall = tall });
+    }
+
+    private void AddPair(List<TileCell> column, string first, string second)
+    {
+        var keys = new List<string>();
+        if (Has(first))
+            keys.Add(first);
+        if (Has(second))
+            keys.Add(second);
+        if (keys.Count > 0)
+            column.Add(new TileCell { Pair = keys.ToArray() });
+    }
+
+    /// <summary>插件自加的「资料库」大贴片键（宿主无此入口，点击由插件打开外部文档站）。</summary>
+    private const string DocsKey = "cw:docs";
+
+    private Task Activate(string key) => key.Equals(DocsKey, StringComparison.OrdinalIgnoreCase)
+        ? OpenUrlAsync(DocsUrl)
+        : OnActivated.InvokeAsync(key);
+
+    private RenderFragment RenderCell(TileCell cell)
+    {
+        if (cell.Pair.Length > 0)
+        {
+            return @<div class="cw-mm-pair">
+                @foreach (string key in cell.Pair)
+                {
+                    @Tile(key)
+                }
+            </div>;
+        }
+
+        return Tile(cell.Key!, cell.Tall);
+    }
+
+    /// <summary>渲染单个贴片；该菜单项被宿主隐藏时返回空片段。</summary>
+    private RenderFragment Tile(string key, bool tall = false, bool wide = false)
+    {
+        if (!_items.TryGetValue(key, out MainMenuTileItem? item))
+            return _ => { };
+
+        MainMenuTileItem it = item;
+        RenderFragment fragment = @<button type="button"
+                                        class="cw-mm-tile @(tall ? "tall" : "") @(wide ? "wide" : "") @(it.IsPrimary ? "primary" : "")"
+                                        disabled="@(!it.IsEnabled)"
+                                        @onclick="() => Activate(it.Key)">
+            <span class="cw-mm-cn">@it.Label</span>
+            <span class="cw-mm-en">@EnLabel(it.Key, it.LabelEn)</span>
+            <span class="cw-mm-icon" aria-hidden="true">@((MarkupString)IconSvg(it.Key))</span>
+        </button>;
+        return fragment;
+    }
+
+    /// <summary>老客户端「资料库」(btnDatabase) 打开的文档站。</summary>
+    private const string DocsUrl = "http://doc.racw.top/";
+
+    /// <summary>旧客户端自带的外链按钮（原 XNA MainMenu.cs 的 btnQQ / btnBili / btnFactory，URL 与之一致）。</summary>
+    private sealed record CwLink(string Label, string Url, string Icon);
+
+    private static readonly CwLink[] Links =
+    [
+        new("QQ群", "https://jq.qq.com/?wv=1027&k=jCwJpi2B", BrandQq),
+        new("哔哩哔哩", "https://space.bilibili.com/38860280", BrandBilibili),
+        new("创意工坊", "http://diy.racw.top/", WorkshopIcon),
+    ];
+
+    // 品牌图标来源 Simple Icons（QQ / Bilibili 官方标志，CC0），内联为 currentColor，随按钮文字一起变亮
+    private const string BrandQq =
+        "<svg viewBox='0 0 24 24' fill='currentColor'><path d='M21.395 15.035a40 40 0 0 0-.803-2.264l-1.079-2.695c.001-.032.014-.562.014-.836C19.526 4.632 17.351 0 12 0S4.474 4.632 4.474 9.241c0 .274.013.804.014.836l-1.08 2.695a39 39 0 0 0-.802 2.264c-1.021 3.283-.69 4.643-.438 4.673.54.065 2.103-2.472 2.103-2.472 0 1.469.756 3.387 2.394 4.771-.612.188-1.363.479-1.845.835-.434.32-.379.646-.301.778.343.578 5.883.369 7.482.189 1.6.18 7.14.389 7.483-.189.078-.132.132-.458-.301-.778-.483-.356-1.233-.646-1.846-.836 1.637-1.384 2.393-3.302 2.393-4.771 0 0 1.563 2.537 2.103 2.472.251-.03.581-1.39-.438-4.673'/></svg>";
+
+    private const string BrandBilibili =
+        "<svg viewBox='0 0 24 24' fill='currentColor'><path d='M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 0 1-.373-.906c0-.356.124-.658.373-.907l.027-.027c.267-.249.573-.373.92-.373.347 0 .653.124.92.373L9.653 4.44c.071.071.134.142.187.213h4.267a.836.836 0 0 1 .16-.213l2.853-2.747c.267-.249.573-.373.92-.373.347 0 .662.151.929.4.267.249.391.551.391.907 0 .355-.124.657-.373.906zM5.333 7.24c-.746.018-1.373.276-1.88.773-.506.498-.769 1.13-.786 1.894v7.52c.017.764.28 1.395.786 1.893.507.498 1.134.756 1.88.773h13.334c.746-.017 1.373-.275 1.88-.773.506-.498.769-1.129.786-1.893v-7.52c-.017-.765-.28-1.396-.786-1.894-.507-.497-1.134-.755-1.88-.773zM8 11.107c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c0-.373.129-.689.386-.947.258-.257.574-.386.947-.386zm8 0c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c.017-.391.15-.711.4-.96.249-.249.56-.373.933-.373Z'/></svg>";
+
+    private const string WorkshopIcon =
+        "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'>" +
+        "<path d='M3 20h18'/><path d='M5 20V10l4 2.5V10l4 2.5V10l4 2.5V6h3v14'/></svg>";
+
+    /// <summary>用系统默认浏览器打开外链（与宿主「鸣谢」同一路径）；失败时弹提示。</summary>
+    private Task OpenLink(CwLink link) => OpenUrlAsync(link.Url);
+
+    private async Task OpenUrlAsync(string url)
+    {
+        if (Extras.OpenUrl(url) is { } error)
+            await JS.InvokeVoidAsync("cncnet.toast", error, "err");
+    }
+
+    /// <summary>贴片英文副标题：半宽小贴片用短词，避免出现省略号。</summary>
+    private static string EnLabel(string key, string fallback) => key.ToLowerInvariant() switch
+    {
+        "load" => "Load",
+        "lore" => "Lore",
+        "multiplayer" => "Multiplayer",
+        "lan" => "LAN",
+        _ => fallback
+    };
+
+    /// <summary>旧客户端风格的细线稿图标（无填充、白色描边，由 CSS 控制透明度与尺寸）。</summary>
+    private static string IconSvg(string key) => key.ToLowerInvariant() switch
+    {
+        "campaign" =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<circle cx='24' cy='24' r='13'/><circle cx='24' cy='24' r='5.5'/>" +
+            "<path d='M24 3v7M24 38v7M3 24h7M38 24h7'/><path d='M33 15l5-5'/></svg>",
+        "multiplayer" =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<circle cx='24' cy='24' r='15'/><path d='M9 24h30'/>" +
+            "<path d='M24 9c5.5 5 5.5 25 0 30M24 9c-5.5 5-5.5 25 0 30'/></svg>",
+        "skirmish" =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<path d='M12 8l24 24M36 8L12 32'/><path d='M8 30l9 9M40 30l-9 9'/></svg>",
+        "lan" =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<rect x='5' y='19' width='11' height='9'/><rect x='32' y='5' width='11' height='9'/>" +
+            "<rect x='32' y='33' width='11' height='9'/><path d='M16 23.5h9V9.5h7M25 23.5V37.5h7'/></svg>",
+        "load" =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<path d='M24 7v22'/><path d='M15 21l9 9 9-9'/><path d='M8 39h32'/></svg>",
+        "lore" =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<path d='M7 9h13a5 5 0 015 5v25a5 5 0 00-5-5H7z'/>" +
+            "<path d='M41 9H28a5 5 0 00-5 5v25a5 5 0 015-5h13z'/></svg>",
+        "cw:docs" =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<path d='M7 9h13a5 5 0 015 5v25a5 5 0 00-5-5H7z'/>" +
+            "<path d='M41 9H28a5 5 0 00-5 5v25a5 5 0 015-5h13z'/></svg>",
+        "stats" =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<path d='M9 39V24M19 39V14M29 39V28M39 39V9'/><path d='M5 43h38'/></svg>",
+        "settings" =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<circle cx='24' cy='24' r='6'/>" +
+            "<path d='M24 6v6M24 36v6M6 24h6M36 24h6M11 11l4.5 4.5M32.5 32.5L37 37M37 11l-4.5 4.5M15.5 32.5L11 37'/></svg>",
+        "mapeditor" =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<rect x='8' y='8' width='32' height='32'/><path d='M8 20h32M8 30h32M20 8v32M30 8v32'/></svg>",
+        "credits" =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<path d='M24 5c7 6.5 9 15 9 21l-9 6-9-6c0-6 2-14.5 9-21z'/>" +
+            "<path d='M16 32l-4 11 8-4.5M32 32l4 11-8-4.5'/><circle cx='24' cy='19' r='3'/></svg>",
+        "extras" =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<rect x='8' y='8' width='32' height='32' rx='2'/><path d='M24 15v18M15 24h18'/></svg>",
+        "exit" =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<path d='M21 8H8v32h13'/><path d='M20 24h20'/><path d='M32 16l8 8-8 8'/></svg>",
+        _ =>
+            "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
+            "<path d='M24 8l14 16-14 16L10 24z'/></svg>"
+    };
+}

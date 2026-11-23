@@ -8,6 +8,8 @@
     <AssemblyName>CwUi</AssemblyName>
     <!-- 插件是类库，运行时由客户端 Assembly.LoadFrom 载入 -->
     <OutputType>Library</OutputType>
+    <!-- 宿主发布目录：仅用于编译期引用宿主程序集（运行时由客户端加载，不复制） -->
+    <CwClientAppDir Condition="'$(CwClientAppDir)' == ''">F:\cw202b\CWBlazorClient\ClientApp</CwClientAppDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,14 +20,29 @@
     <!-- 契约是唯一必需的编译期依赖。
          PrivateAssets=all 阻止向下游传递，ExcludeAssets=runtime 阻止复制到本插件输出目录：
          宿主已加载同一份契约，插件目录再放一份会导致类型身份分裂。 -->
-    <PackageReference Include="CnCNetClient.Plugin.Abstractions" Version="1.0.0"
+    <PackageReference Include="CnCNetClient.Plugin.Abstractions" Version="1.1.0"
                       PrivateAssets="all" ExcludeAssets="runtime" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- 自描述与样式随输出，便于直接取 bin 目录产物部署到 Plugins/cw-ui/ -->
+    <!-- 宿主程序集：插件页面/槽位组件 @inject CampaignService 需要编译期类型。
+         宿主运行时已加载这些程序集（默认 ALC 共享），所以 Private=false 禁止复制到插件目录。 -->
+    <Reference Include="BlazorCncnetClient">
+      <HintPath>$(CwClientAppDir)\BlazorCncnetClient.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="CnCNetClient.Domain">
+      <HintPath>$(CwClientAppDir)\CnCNetClient.Domain.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 自描述、样式、脚本与 ReShade 预设模板随输出，便于直接取 bin 目录产物部署到 Plugins/cw-ui/ -->
     <Content Include="plugin.ini" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="plugin.css" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="cw-overlay.js" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\ReshadePreset.ini" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

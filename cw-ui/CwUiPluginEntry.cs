@@ -1,10 +1,12 @@
 using CnCNetClient.Plugin.Abstractions;
+using CwUi.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CwUi;
 
 /// <summary>
-/// CW UI 插件入口：新增独立页面 <c>/plugin/cw-ui/home</c>、
-/// 主菜单入口，以及设置页侧栏卡片（追加型槽位）。
+/// CW UI 插件入口：银白科技风主题（plugin.css）、ReShade 画质设置页、
+/// 主菜单小贴士与旧客户端的大版本更新提示。
 /// </summary>
 public sealed class CwUiPluginEntry : ICncNetPlugin
 {
@@ -17,22 +19,31 @@ public sealed class CwUiPluginEntry : ICncNetPlugin
 
     public void RegisterServices(IPluginContext context)
     {
+        CwEnvironment env = new(context.GameRoot, context.PluginDirectory);
+        context.Services.AddSingleton(env);
+        context.Services.AddSingleton<CwReShadeService>();
+        context.Services.AddSingleton<CwTipService>();
+        context.Services.AddSingleton<CwUpdateChecker>();
+        context.Services.AddSingleton<CwStartupUpdateGate>();
+        // 宿主启动检查前询问：大版本时返回 false，跳过在线更新（旧客户端语义）
+        context.Services.AddSingleton<IStartupUpdateGate>(sp => sp.GetRequiredService<CwStartupUpdateGate>());
     }
 
     public void RegisterUi(IPluginUiRegistrar ui)
     {
-        // 本程序集内的 @page 路由交给宿主 Router 发现
+        // 本程序集内的 @page 路由交给宿主 Router 发现（/plugin/cw-ui/reshade）
         ui.AddPageAssembly(typeof(CwUiPluginEntry).Assembly);
 
-        // 追加型槽位：设置页左侧栏
+        // 追加型槽位：设置页左侧栏入口
         ui.ContributeSlot("page.settings.aside", typeof(Components.CwSettingsAside));
 
-        // 主菜单入口
-        ui.AddMenuEntry(new PluginMenuEntry(
-            Key: "cw-ui.home",
-            Label: "CW 界面",
-            LabelEn: "CW UI",
-            Icon: "◆",
-            Route: "/plugin/cw-ui/home"));
+        // 追加型槽位：战役页任务列表（按阵营分组，替换内置扁平列表）
+        ui.ContributeSlot("page.campaign.aside", typeof(Components.CwCampaignGroups));
+
+        // 追加型槽位：全局覆盖层宿主（小贴士 + 版本提示，DOM 由 cw-overlay.js 挂到 body）
+        ui.ContributeSlot("layout.topbar", typeof(Components.CwOverlayHost));
+
+        // 替换型槽位：主菜单列表外观（条目数据与点击仍由宿主提供，旧客户端玻璃贴片风）
+        ui.ReplaceSlot("page.menu.list", typeof(Components.CwMainMenu));
     }
 }

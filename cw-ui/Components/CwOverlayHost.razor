@@ -1,0 +1,147 @@
+@using System.Diagnostics
+@using Microsoft.AspNetCore.Components.Routing
+@using CwUi.Services
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject CwTipService TipService
+@inject CwStartupUpdateGate UpdateGate
+@implements IDisposable
+
+@*
+    全局覆盖层宿主：挂在 layout.topbar 槽位，但自身不产出可见 DOM。
+    小贴士与版本提示由 cw-overlay.js 挂到 document.body 上，
+    避免受顶栏 .hud 的 transform（fixed 包含块）影响。
+*@
+
+@code {
+    private DotNetObjectReference<CwOverlayHost>? _self;
+    private bool _jsReady;
+    private bool _updateStarted;
+
+    protected override void OnInitialized()
+    {
+        _self = DotNetObjectReference.Create(this);
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        _jsReady = await WaitForScriptAsync();
+        if (!_jsReady)
+            return;
+
+        await ApplyRouteAsync();
+
+        if (!_updateStarted)
+        {
+            _updateStarted = true;
+            _ = CheckUpdateAsync();
+        }
+    }
+
+    private async Task<bool> WaitForScriptAsync()
+    {
+        for (int i = 0; i < 50; i++)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("cwUi.ping");
+                return true;
+            }
+            catch (JSException)
+            {
+                await Task.Delay(100);
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+        => _ = InvokeAsync(ApplyRouteAsync);
+
+    private async Task ApplyRouteAsync()
+    {
+        if (!_jsReady)
+            return;
+
+        try
+        {
+            if (IsMainMenu())
+            {
+                CwTipContent tips = TipService.Load();
+                if (tips.HasItems)
+                    await JS.InvokeVoidAsync("cwUi.showTips", tips.Items.ToArray(), tips.IntervalMs);
+                else
+                    await JS.InvokeVoidAsync("cwUi.hideTips");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("cwUi.hideTips");
+            }
+        }
+        catch (JSException)
+        {
+            // 脚本尚未注入或页面正在卸载，忽略即可。
+        }
+    }
+
+    private bool IsMainMenu()
+    {
+        string relative = Nav.ToBaseRelativePath(Nav.Uri);
+        int cut = relative.IndexOfAny(new[] { '?', '#' });
+        if (cut >= 0)
+            relative = relative[..cut];
+
+        return string.Equals(relative.Trim('/'), "menu", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task CheckUpdateAsync()
+    {
+        try
+        {
+            // 复用宿主启动检查前那次判定的缓存结果，避免重复请求接口
+            CwUpdateCheckResult? result = await UpdateGate.EnsureCheckedAsync();
+            if (result is not { NeedDownload: true })
+                return;
+
+            string title = string.IsNullOrWhiteSpace(result.NextVersion)
+                ? "检测到新的版本"
+                : $"检测到新的版本 {result.NextVersion}";
+
+            await JS.InvokeVoidAsync(
+                "cwUi.showUpdate",
+                _self,
+                title,
+                "当前版本无法在线更新到最新版本，请点击以下地址手动下载。",
+                result.DownloadUrl1,
+                result.DownloadUrl2);
+        }
+        catch
+        {
+            // 网络不可用/接口异常时静默跳过，不影响客户端启动。
+        }
+    }
+
+    [JSInvokable]
+    public Task OpenUrl(string url)
+    {
+        if (!string.IsNullOrWhiteSpace(url))
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        _self?.Dispose();
+    }
+}

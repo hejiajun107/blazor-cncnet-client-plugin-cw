@@ -1,0 +1,249 @@
+@using System;
+@using System.Collections.Generic;
+@using System.IO;
+@using System.Linq;
+@using BlazorCncnetClient.Infrastructure;
+@using CnCNetClient.Domain;
+@implements IDisposable
+@inject CampaignService Svc
+@inject CwEnvironment Env
+
+@* 追加型槽位 page.campaign.aside：按阵营（Battle.ini [Battles] 的 Group）分组渲染任务列表。
+   选中后仍走宿主 CampaignService，右侧任务描述 / 难度 / 启动按钮不受影响。 *@
+<div class="cw-camp">
+    <div class="camp-tags">
+        <button type="button" class="ct-btn @(_activeGroup is null ? "on" : "")"
+                @onclick="() => SetGroup(null)">全部</button>
+        @foreach (FactionGroup group in _groups)
+        {
+            <button type="button" class="ct-btn @(_activeGroup == group.Id ? "on" : "")"
+                    @onclick="() => SetGroup(group.Id)">@group.Label</button>
+        }
+    </div>
+
+    <div class="cw-camp-list">
+        @if (_groups.Count == 0)
+        {
+            <div class="camp-empty">暂无可用任务</div>
+        }
+        else
+        {
+            @foreach (FactionGroup group in VisibleGroups())
+            {
+                <div class="cw-camp-head">@group.Label</div>
+                @foreach (Mission mission in group.Missions)
+                {
+                    <button type="button"
+                            class="camp-item @(IsSelected(mission) ? "on" : "")"
+                            disabled="@(!mission.Enabled)"
+                            @onclick="() => Svc.SelectMission(mission)">
+                        <span class="ci-chip" style="background:@SideColor(mission)"></span>
+                        <span class="ci-txt">@mission.GUIName</span>
+                        @if (!string.IsNullOrEmpty(mission.TagAbbreviation))
+                        {
+                            <span class="ci-tag">@mission.TagAbbreviation</span>
+                        }
+                    </button>
+                }
+            }
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>一个阵营分组（Id = Battle.ini 的 Group，如 btnSide1）。</summary>
+    private sealed class FactionGroup
+    {
+        public string Id { get; init; } = string.Empty;
+        public string Label { get; init; } = string.Empty;
+        public List<Mission> Missions { get; } = new();
+    }
+
+    private readonly List<FactionGroup> _groups = new();
+    private readonly Dictionary<string, string> _missionGroup = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<(string Id, string Label)> _groupDefs = new();
+    private string? _activeGroup;
+
+    protected override void OnInitialized()
+    {
+        ReadGroupDefinitions();
+        Svc.Changed += OnServiceChanged;
+        Rebuild();
+    }
+
+    private void OnServiceChanged()
+    {
+        // 语言切换会重建 Mission 实例，按当前列表重新分组
+        Rebuild();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void SetGroup(string? id)
+    {
+        _activeGroup = id;
+        StateHasChanged();
+    }
+
+    private IEnumerable<FactionGroup> VisibleGroups() =>
+        _activeGroup is null
+            ? _groups
+            : _groups.Where(g => string.Equals(g.Id, _activeGroup, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>按当前可见任务（宿主 CampaignService.Missions）建组，顺序取任务首次出现顺序。</summary>
+    private void Rebuild()
+    {
+        _groups.Clear();
+
+        foreach (Mission mission in Svc.Missions)
+        {
+            if (string.IsNullOrEmpty(mission.Scenario))
+                continue; // 分组标题行
+
+            string id = _missionGroup.TryGetValue(mission.CodeName, out string? groupId) && groupId.Length > 0
+                ? groupId
+                : "other";
+
+            FactionGroup? group = _groups.FirstOrDefault(g =>
+                string.Equals(g.Id, id, StringComparison.OrdinalIgnoreCase));
+            if (group is null)
+            {
+                group = new FactionGroup { Id = id, Label = LabelOf(id) };
+                _groups.Add(group);
+            }
+
+            group.Missions.Add(mission);
+        }
+
+        if (_activeGroup is not null
+            && !_groups.Any(g => string.Equals(g.Id, _activeGroup, StringComparison.OrdinalIgnoreCase)))
+        {
+            _activeGroup = null;
+        }
+    }
+
+    /// <summary>读取 Battle.ini（空则回退 BattleFS.ini）：任务 CodeName → Group，并用标题行取阵营显示名。</summary>
+    private void ReadGroupDefinitions()
+    {
+        foreach (string file in new[] { "INI/Battle.ini", "INI/BattleFS.ini" })
+        {
+            string path = Env.GamePath(file.Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(path))
+                continue;
+
+            Dictionary<string, List<KeyValuePair<string, string>>> sections = ParseIni(path);
+            if (!sections.TryGetValue("Battles", out List<KeyValuePair<string, string>>? battles))
+                continue;
+
+            foreach (KeyValuePair<string, string> entry in battles)
+            {
+                if (!sections.TryGetValue(entry.Value, out List<KeyValuePair<string, string>>? section))
+                    continue;
+
+                string group = GetValue(section, "Group")?.Trim() ?? string.Empty;
+                if (group.Length == 0)
+                    group = "other";
+
+                bool isHeader = string.IsNullOrWhiteSpace(GetValue(section, "Scenario"));
+                if (isHeader && !_groupDefs.Any(d => string.Equals(d.Id, group, StringComparison.OrdinalIgnoreCase)))
+                {
+                    _groupDefs.Add((group, LabelFromHeader(GetValue(section, "Description"))));
+                }
+
+                _missionGroup[entry.Key] = group;
+            }
+
+            if (_groupDefs.Count > 0)
+                break;
+        }
+    }
+
+    private static Dictionary<string, List<KeyValuePair<string, string>>> ParseIni(string path)
+    {
+        var result = new Dictionary<string, List<KeyValuePair<string, string>>>(StringComparer.OrdinalIgnoreCase);
+        List<KeyValuePair<string, string>>? current = null;
+
+        foreach (string raw in File.ReadAllLines(path))
+        {
+            string line = raw.Trim();
+            if (line.Length == 0 || line[0] == ';' || line[0] == '#')
+                continue;
+
+            if (line.Length >= 2 && line[0] == '[' && line[^1] == ']')
+            {
+                string name = line[1..^1].Trim();
+                if (!result.TryGetValue(name, out current))
+                {
+                    current = new List<KeyValuePair<string, string>>();
+                    result[name] = current;
+                }
+                continue;
+            }
+
+            int eq = line.IndexOf('=');
+            if (eq <= 0 || current is null)
+                continue;
+
+            string key = line[..eq].Trim();
+            string value = line[(eq + 1)..].Trim();
+            int comment = value.IndexOf(';');
+            if (comment >= 0)
+                value = value[..comment].TrimEnd();
+
+            current.Add(new KeyValuePair<string, string>(key, value));
+        }
+
+        return result;
+    }
+
+    private static string? GetValue(List<KeyValuePair<string, string>> section, string key)
+    {
+        foreach (KeyValuePair<string, string> pair in section)
+        {
+            if (string.Equals(pair.Key, key, StringComparison.OrdinalIgnoreCase))
+                return pair.Value;
+        }
+        return null;
+    }
+
+    /// <summary>标题行描述（如 "-- 尤里的复仇 盟军战役 --"）→ 短阵营名（盟军 / 苏军 / 尤里 / 升阳 / 华夏 / 思金）。</summary>
+    private static string LabelFromHeader(string? description)
+    {
+        string text = (description ?? string.Empty).Trim(' ', '-', '\t');
+
+        int space = text.LastIndexOf(' ');
+        if (space >= 0 && space < text.Length - 1)
+            text = text[(space + 1)..];
+
+        if (text.EndsWith("战役", StringComparison.Ordinal))
+            text = text[..^2];
+
+        return text.Length == 0 ? "其他" : text;
+    }
+
+    private string LabelOf(string id)
+    {
+        foreach ((string Id, string Label) def in _groupDefs)
+        {
+            if (string.Equals(def.Id, id, StringComparison.OrdinalIgnoreCase))
+                return def.Label;
+        }
+        return id == "other" ? "其他" : id;
+    }
+
+    private bool IsSelected(Mission mission) =>
+        string.Equals(Svc.SelectedMission?.CodeName, mission.CodeName, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>阵营标识色：按任务 SideName（Allied/Soviet/SChina/SJapan/Yuri/SScrin）取色。</summary>
+    private static string SideColor(Mission mission) => (mission.IconPath ?? string.Empty).ToLowerInvariant() switch
+    {
+        "allied" => "rgb(90,169,230)",
+        "soviet" => "rgb(217,83,79)",
+        "schina" => "rgb(217,198,142)",
+        "sjapan" => "rgb(224,86,125)",
+        "yuri" => "rgb(169,127,224)",
+        "sscrin" => "rgb(124,199,155)",
+        _ => "rgb(160,220,255)"
+    };
+
+    public void Dispose() => Svc.Changed -= OnServiceChanged;
+}
