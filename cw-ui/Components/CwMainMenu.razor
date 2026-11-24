@@ -23,12 +23,12 @@
         }
     </div>
 
-    @* 底部：资料库用整行大贴片（旧客户端 btnDatabase），其后是宿主新增的入口（地图编辑器 / 附加功能） *@
+    @* 资料库（旧客户端 btnDatabase）| 地图编辑器 *@
     <div class="cw-mm-bottom">
-        @Tile(DocsKey, wide: true)
-        @foreach (string key in _bottom)
+        @Tile(DocsKey)
+        @if (_bottom.Count > 0)
         {
-            @Tile(key)
+            @Tile(_bottom[0])
         }
     </div>
 
@@ -43,12 +43,13 @@
         }
     </div>
 
-    @* 右下角快速退出（与网格里的「退出」贴片同一宿主行为：二次确认后关闭客户端） *@
-    <div class="cw-mm-exitrow">
-        <button type="button" class="cw-mm-exit" @onclick='() => OnActivated.InvokeAsync("exit")'>
-            <span class="cw-mm-exit-ic" aria-hidden="true">@((MarkupString)IconSvg("exit"))</span>
-            <span>退出</span>
-        </button>
+    @* 附加功能 | 退出（右下角，嵌在网格内） *@
+    <div class="cw-mm-bottom">
+        @foreach (string key in _bottom.Skip(1))
+        {
+            @Tile(key)
+        }
+        @Tile(ExitKey)
     </div>
 </nav>
 
@@ -82,9 +83,13 @@
 
     protected override void OnParametersSet()
     {
-        _items = Items.ToDictionary(i => i.Key, i => i, StringComparer.OrdinalIgnoreCase);
+        // 宿主的 exit 不放进网格：底部网格右下角已有 cw:exit（避免出现两个「退出」）
+        _items = Items
+            .Where(i => !i.Key.Equals("exit", StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(i => i.Key, i => i, StringComparer.OrdinalIgnoreCase);
         // 老客户端的「资料库」(btnDatabase) 新客户端没有对应入口，这里补一枚插件自有的大贴片
         _items[DocsKey] = new MainMenuTileItem(DocsKey, "资料库", "Database", "❖", false, true);
+        _items[ExitKey] = new MainMenuTileItem(ExitKey, "退出", "Exit", "✕", false, true);
         BuildColumns();
     }
 
@@ -93,7 +98,7 @@
     /// <summary>
     /// 按旧客户端排法先放入固定位置：左列 战役 / 遭遇战 / 鸣谢·载入，
     /// 右列 多人游戏 / 局域网 / 设置 / 统计·退出；某项被宿主隐藏时，从较高列挪一个普通项补齐。
-    /// 老客户端的「资料库」固定在两列下方的整行大贴片。
+    /// 老客户端的「资料库」与退出放在两列下方的 2×2 底部网格。
     /// </summary>
     private void BuildColumns()
     {
@@ -157,9 +162,17 @@
     /// <summary>插件自加的「资料库」大贴片键（宿主无此入口，点击由插件打开外部文档站）。</summary>
     private const string DocsKey = "cw:docs";
 
-    private Task Activate(string key) => key.Equals(DocsKey, StringComparison.OrdinalIgnoreCase)
-        ? OpenUrlAsync(DocsUrl)
-        : OnActivated.InvokeAsync(key);
+    /// <summary>右下角退出贴片（嵌在底部网格最后一格，点击走宿主同一条退出逻辑）。</summary>
+    private const string ExitKey = "cw:exit";
+
+    private Task Activate(string key)
+    {
+        if (key.Equals(ExitKey, StringComparison.OrdinalIgnoreCase))
+            return OnActivated.InvokeAsync("exit");
+        return key.Equals(DocsKey, StringComparison.OrdinalIgnoreCase)
+            ? OpenUrlAsync(DocsUrl)
+            : OnActivated.InvokeAsync(key);
+    }
 
     private RenderFragment RenderCell(TileCell cell)
     {
@@ -177,14 +190,15 @@
     }
 
     /// <summary>渲染单个贴片；该菜单项被宿主隐藏时返回空片段。</summary>
-    private RenderFragment Tile(string key, bool tall = false, bool wide = false)
+    private RenderFragment Tile(string key, bool tall = false)
     {
         if (!_items.TryGetValue(key, out MainMenuTileItem? item))
             return _ => { };
 
         MainMenuTileItem it = item;
+        bool danger = it.Key.Equals(ExitKey, StringComparison.OrdinalIgnoreCase);
         RenderFragment fragment = @<button type="button"
-                                        class="cw-mm-tile @(tall ? "tall" : "") @(wide ? "wide" : "") @(it.IsPrimary ? "primary" : "")"
+                                        class="cw-mm-tile @(tall ? "tall" : "") @(danger ? "danger" : "") @(it.IsPrimary ? "primary" : "")"
                                         disabled="@(!it.IsEnabled)"
                                         @onclick="() => Activate(it.Key)">
             <span class="cw-mm-cn">@it.Label</span>
@@ -283,7 +297,7 @@
         "extras" =>
             "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
             "<rect x='8' y='8' width='32' height='32' rx='2'/><path d='M24 15v18M15 24h18'/></svg>",
-        "exit" =>
+        "exit" or "cw:exit" =>
             "<svg viewBox='0 0 48 48' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>" +
             "<path d='M21 8H8v32h13'/><path d='M20 24h20'/><path d='M32 16l8 8-8 8'/></svg>",
         _ =>

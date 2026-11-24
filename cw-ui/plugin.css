@@ -282,8 +282,8 @@ input[type="radio"]{color-scheme:dark}
 /* ── 5. 主菜单小贴士（挂载于 document.body） ───────────────────── */
 .cw-tips{
   position:fixed;
-  left:32px;
-  top:72px;
+  right:32px;
+  bottom:60px;
   z-index:30;
   display:flex;
   gap:10px;
@@ -544,18 +544,26 @@ input[type="radio"]{color-scheme:dark}
 
 /* ── 9. 主菜单玻璃贴片（page.menu.list 替换槽位，旧客户端风格） ── */
 .cw-menu{
+  /* 响应式：贴片高度随窗口高度缩放（窗口变矮时整体等比缩小，保证所有按钮完整显示；
+     大屏/全屏时按钮同步放大，与放大后的视频区比例接近） */
+  --cw-unit:clamp(48px, calc((100vh - 250px) / 8), 132px);
+  --cw-gap:clamp(5px, calc(var(--cw-unit) * 0.109), 14px);
   display:grid;
   grid-template-columns:1.04fr 1fr;
-  gap:10px;
+  gap:var(--cw-gap);
   width:100%;
   align-items:start;
 }
-.cw-mm-col{display:flex;flex-direction:column;gap:10px;min-width:0}
-.cw-mm-pair{display:flex;gap:10px;min-width:0}
+.cw-mm-col{display:flex;flex-direction:column;gap:var(--cw-gap);min-width:0}
+.cw-mm-pair{display:flex;gap:var(--cw-gap);min-width:0}
 .cw-mm-pair .cw-mm-tile{flex:1;min-width:0}
+/* 半宽贴片文案收窄：中文不换行，避免「遭遇战」「随机地图」被折成两行 */
+.cw-mm-pair .cw-mm-tile{padding:clamp(7px, calc(var(--cw-unit) * 0.13), 12px)}
+.cw-mm-pair .cw-mm-cn{font-size:clamp(12px, calc(var(--cw-unit) * 0.19), 17px);letter-spacing:.5px;white-space:nowrap}
+.cw-mm-pair .cw-mm-en{font-size:clamp(8px, calc(var(--cw-unit) * 0.105), 10.5px);letter-spacing:.6px;margin-top:3px}
+.cw-mm-pair .cw-mm-icon{width:clamp(20px, calc(var(--cw-unit) * 0.4), 36px);height:clamp(20px, calc(var(--cw-unit) * 0.4), 36px);right:6px;bottom:5px}
 
 .cw-mm-tile{
-  --cw-unit:92px;
   position:relative;
   display:flex;
   flex-direction:column;
@@ -563,7 +571,7 @@ input[type="radio"]{color-scheme:dark}
   justify-content:flex-start;
   width:100%;
   height:var(--cw-unit);
-  padding:14px 16px;
+  padding:clamp(8px, calc(var(--cw-unit) * 0.152), 14px) clamp(9px, calc(var(--cw-unit) * 0.174), 16px);
   overflow:hidden;
   text-align:left;
   cursor:pointer;
@@ -578,7 +586,7 @@ input[type="radio"]{color-scheme:dark}
              inset 0 -1px 0 rgba(0,0,0,.28);
   transition:border-color .2s,background .2s,box-shadow .2s;
 }
-.cw-mm-tile.tall{height:calc(var(--cw-unit) * 2 + 10px)}
+.cw-mm-tile.tall{height:calc(var(--cw-unit) * 2 + var(--cw-gap))}
 .cw-mm-tile.primary{border-color:rgba(180,224,238,.62);
   background:linear-gradient(180deg,rgba(52,86,108,.46),rgba(10,24,36,.40))}
 
@@ -586,7 +594,7 @@ input[type="radio"]{color-scheme:dark}
   display:block;
   max-width:calc(100% - 12px);
   font-family:"Microsoft YaHei","Noto Sans SC",sans-serif;
-  font-size:21px;
+  font-size:clamp(13px, calc(var(--cw-unit) * 0.228), 30px);
   font-weight:700;
   letter-spacing:1px;
   line-height:1.25;
@@ -596,7 +604,7 @@ input[type="radio"]{color-scheme:dark}
   display:block;
   max-width:calc(100% - 6px);
   margin-top:5px;
-  font-size:11.5px;
+  font-size:clamp(8.5px, calc(var(--cw-unit) * 0.125), 15px);
   letter-spacing:1.2px;
   white-space:nowrap;
   overflow:hidden;
@@ -608,8 +616,8 @@ input[type="radio"]{color-scheme:dark}
   position:absolute;
   right:9px;
   bottom:6px;
-  width:54px;
-  height:54px;
+  width:clamp(26px, calc(var(--cw-unit) * 0.587), 76px);
+  height:clamp(26px, calc(var(--cw-unit) * 0.587), 76px);
   color:#e4eef5;
   opacity:.42;
   pointer-events:none;
@@ -617,10 +625,10 @@ input[type="radio"]{color-scheme:dark}
 }
 .cw-mm-icon svg{display:block;width:100%;height:100%}
 
-.cw-mm-pair .cw-mm-tile{padding:11px 12px}
-.cw-mm-pair .cw-mm-cn{font-size:18px}
-.cw-mm-pair .cw-mm-en{font-size:10.5px;letter-spacing:.5px}
-.cw-mm-pair .cw-mm-icon{width:34px;height:34px;right:6px;bottom:4px;opacity:.32}
+.cw-mm-pair .cw-mm-tile{padding:clamp(7px, calc(var(--cw-unit) * 0.13), 18px)}
+.cw-mm-pair .cw-mm-cn{font-size:clamp(11px, calc(var(--cw-unit) * 0.196), 25px)}
+.cw-mm-pair .cw-mm-en{font-size:clamp(8px, calc(var(--cw-unit) * 0.114), 14px);letter-spacing:.5px}
+.cw-mm-pair .cw-mm-icon{width:clamp(18px, calc(var(--cw-unit) * 0.37), 48px);height:clamp(18px, calc(var(--cw-unit) * 0.37), 48px);right:6px;bottom:4px;opacity:.32}
 
 .cw-mm-tile:hover:not(:disabled){
   border-color:rgba(190,230,242,.90);
@@ -634,38 +642,44 @@ input[type="radio"]{color-scheme:dark}
 /* 主菜单视频视口：等比缩到 80%（宽度 80% + aspect-ratio 自动等比），水平居中 */
 .viewport{width:80%;margin-inline:auto}
 
-/* 贴片菜单接管时，让菜单区直接浮在视频上（旧客户端没有深色底板） */
+/* 左栏撑满高度（避开底部固定 footer）：更新状态条贴在 footer 上方，视频在剩余空间内尽量放大 */
+.stage .left{align-self:flex-start;position:relative;height:calc(100vh - 44px);gap:6px}
+.stage .left .viewport{width:min(92%,calc((100vh - 150px) * 1.1088));margin:auto}
+.stage .left .updstrip{position:absolute;left:0;right:0;bottom:0;z-index:2;margin:0}
+
+/* 主菜单：隐藏左上「CNC NET // COMMAND VIEW」品牌条；视频与菜单收拢居中，去掉宽屏下的巨大空隙 */
+.stage .left .logobar{display:none}
+.stage{justify-content:center;column-gap:clamp(16px,2.4vw,88px)}
+.stage .left{flex:0 1 auto;width:min(92vw,calc((100vh - 150px) * 1.1088));max-width:none}
+.stage .left .viewport{width:100%;margin:auto}
+
+/* 贴片菜单接管时，让菜单区直接浮在视频上（旧客户端没有深色底板）；
+   宽度随窗口高度放大（大屏/全屏下按钮区不再明显小于视频区） */
 .panel:has(.cw-menu){
   background:transparent;  border-color:transparent;
   box-shadow:none;
   -webkit-backdrop-filter:none;
   backdrop-filter:none;
+  width:min(92vw, clamp(360px, calc((100vh - 150px) * 0.46), 1000px));
 }
 
 .cw-mm-bottom{
   grid-column:1 / -1;
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:10px;
+  gap:var(--cw-gap);
 }
-/* 底部整行大贴片（资料库）：横跨两列，图标与文字放大 */
-.cw-mm-bottom .cw-mm-tile.wide{
-  grid-column:1 / -1;
-  padding:16px 20px;
-}
-.cw-mm-bottom .cw-mm-tile.wide .cw-mm-cn{font-size:22px;letter-spacing:2px;max-width:calc(100% - 80px)}
-.cw-mm-bottom .cw-mm-tile.wide .cw-mm-en{margin-top:6px;font-size:12px}
-.cw-mm-bottom .cw-mm-tile.wide .cw-mm-icon{width:60px;height:60px;right:18px;bottom:10px;opacity:.40}
+/* 底部 2×2 网格：资料库 | 地图编辑器、附加功能 | 退出 */
 
 /* 旧客户端自带的外链按钮（QQ群 / 哔哩哔哩 / 创意工坊）：底部一排紧凑贴片 */
 .cw-mm-links{
   grid-column:1 / -1;
   display:grid;
   grid-template-columns:repeat(3,1fr);
-  gap:8px;
+  gap:clamp(5px, calc(var(--cw-unit) * 0.087), 8px);
 }
 .cw-mm-link{
-  height:44px;
+  height:clamp(30px, calc(var(--cw-unit) * 0.478), 60px);
   display:flex;
   align-items:center;
   justify-content:center;
@@ -675,13 +689,13 @@ input[type="radio"]{color-scheme:dark}
   background:linear-gradient(180deg,rgba(36,60,78,.36),rgba(8,18,28,.32));
   color:#d6e5ee;
   font-family:inherit;
-  font-size:13px;
+  font-size:clamp(11px, calc(var(--cw-unit) * 0.141), 17px);
   letter-spacing:1px;
   white-space:nowrap;
   cursor:pointer;
   transition:border-color .18s,background .18s,box-shadow .18s,color .18s;
 }
-.cw-mm-link-ic{width:17px;height:17px;flex:none;opacity:.72;transition:opacity .18s}
+.cw-mm-link-ic{width:clamp(13px, calc(var(--cw-unit) * 0.185), 22px);height:clamp(13px, calc(var(--cw-unit) * 0.185), 22px);flex:none;opacity:.72;transition:opacity .18s}
 .cw-mm-link-ic svg{display:block;width:100%;height:100%}
 .cw-mm-link:hover{
   color:#f2fbff;
@@ -691,34 +705,55 @@ input[type="radio"]{color-scheme:dark}
 }
 .cw-mm-link:hover .cw-mm-link-ic{opacity:1}
 
-/* 右下角快速退出按钮 */
-.cw-mm-exitrow{
-  grid-column:1 / -1;
-  display:flex;
-  justify-content:flex-end;
-}
-.cw-mm-exit{
-  display:flex;
-  align-items:center;
-  gap:7px;
-  height:38px;
-  padding:0 18px;
-  border:1px solid rgba(150,200,215,.34);
-  background:linear-gradient(180deg,rgba(36,60,78,.36),rgba(8,18,28,.32));
-  color:#d6e5ee;
-  font-family:inherit;
-  font-size:13px;
-  letter-spacing:2px;
-  cursor:pointer;
-  transition:border-color .18s,background .18s,box-shadow .18s,color .18s;
-}
-.cw-mm-exit-ic{width:16px;height:16px;flex:none;opacity:.72;transition:opacity .18s}
-.cw-mm-exit-ic svg{display:block;width:100%;height:100%}
-.cw-mm-exit:hover{
-  color:#fff;
+/* 右下角退出贴片：仍是普通贴片，仅悬停时转红提示危险操作 */
+.cw-mm-tile.danger:hover{
   border-color:rgba(255,124,112,.85);
   background:linear-gradient(180deg,rgba(96,44,40,.50),rgba(30,12,12,.42));
   box-shadow:0 0 16px rgba(255,92,80,.22);
 }
-.cw-mm-exit:hover .cw-mm-exit-ic{opacity:1}
 
+/* ── 随机地图生成页（/plugin/cw-ui/randommap）──────────────────── */
+.cw-rm{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px 16px}
+.cw-rm-card{
+  width:min(560px,92vw);
+  padding:22px 24px 18px;
+  border:1px solid rgba(150,200,215,.34);
+  background:linear-gradient(180deg,rgba(14,26,36,.82),rgba(5,10,16,.86));
+  backdrop-filter:blur(6px);
+  box-shadow:0 0 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05);
+}
+.cw-rm-head{display:flex;align-items:baseline;gap:10px;margin-bottom:16px;padding-bottom:10px;
+  border-bottom:1px solid rgba(150,200,215,.22)}
+.cw-rm-title{font-size:19px;font-weight:600;letter-spacing:2px;color:#e8f6ff}
+.cw-rm-sub{font-family:'Orbitron',var(--font-cn);font-size:10px;letter-spacing:2px;color:#7fb3c9}
+.cw-rm-field{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:12px;margin-bottom:10px}
+.cw-rm-field label{font-size:13px;color:#a9c6d6;letter-spacing:1px}
+.cw-rm-field select{height:32px;padding:0 8px;border:1px solid rgba(150,200,215,.32);
+  background:rgba(6,16,24,.9);color:#dff3ff;font-family:inherit;font-size:13px;outline:none}
+.cw-rm-field select:focus{border-color:rgba(33,230,255,.6)}
+.cw-rm-hint{margin:6px 0 14px;font-size:12px;color:#6f93a6;line-height:1.6}
+.cw-rm-actions{display:flex;gap:10px;justify-content:flex-end}
+.cw-rm-btn{min-width:96px;height:34px;border:1px solid rgba(150,200,215,.4);
+  background:linear-gradient(180deg,rgba(36,60,78,.42),rgba(8,18,28,.4));
+  color:#dff3ff;font-family:inherit;font-size:13px;letter-spacing:1px;cursor:pointer;
+  transition:border-color .18s,background .18s,box-shadow .18s}
+.cw-rm-btn.primary{border-color:rgba(120,210,235,.72);
+  background:linear-gradient(180deg,rgba(30,96,120,.58),rgba(8,32,44,.55))}
+.cw-rm-btn:hover:not(:disabled){border-color:rgba(190,230,242,.88);
+  box-shadow:0 0 14px rgba(130,200,225,.18)}
+.cw-rm-btn:disabled{opacity:.5;cursor:default}
+.cw-rm-status{margin-top:12px;padding:8px 10px;font-size:12.5px;border-left:2px solid}
+.cw-rm-status.ok{color:#9ee7b8;border-color:#4ade80;background:rgba(74,222,128,.08)}
+.cw-rm-status.err{color:#ffb0a8;border-color:#ff5c50;background:rgba(255,92,80,.08)}
+.cw-rm-list{margin-top:14px;padding-top:10px;border-top:1px solid rgba(150,200,215,.18)}
+.cw-rm-list-head{font-size:12px;color:#7fb3c9;letter-spacing:1px;margin-bottom:6px}
+.cw-rm-item{font-size:12.5px;color:#cfe6f2;padding:3px 0}
+.cw-rm-empty{font-size:12px;color:#5f8aa0}
+
+
+/* 大厅工具条「生成」按钮 / 随机地图弹窗（宿主槽位 page.skirmish.map.tools） */
+.cw-rm-backdrop{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;
+  padding:32px 16px;overflow:auto;background:rgba(2,6,10,.72);backdrop-filter:blur(3px)}
+.cw-rm-close{margin-left:auto;width:26px;height:26px;border:1px solid rgba(150,200,215,.35);
+  background:transparent;color:#a9c6d6;cursor:pointer;font-size:12px;line-height:1;flex:none}
+.cw-rm-close:hover{color:#fff;border-color:rgba(190,230,242,.8)}

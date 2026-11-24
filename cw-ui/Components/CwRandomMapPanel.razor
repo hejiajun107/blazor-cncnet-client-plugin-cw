@@ -1,0 +1,147 @@
+@using CwUi.Services
+@inject CwRandomMapService RandomMaps
+@inject NavigationManager Nav
+@inject Microsoft.JSInterop.IJSRuntime JS
+@implements IDisposable
+@* 随机地图生成面板（移植自旧客户端 RandomMapOptionWindow）：
+   参数、命令行与输出规则与旧客户端一致；页面与大厅弹窗共用本组件。 *@
+
+<section class="cw-rm-card">
+    <header class="cw-rm-head">
+        <span class="cw-rm-title">随机地图生成</span>
+        <span class="cw-rm-sub">RANDOM MAP</span>
+        @if (OnClose.HasDelegate)
+        {
+            <button type="button" class="cw-rm-close" title="关闭" @onclick="Close">✕</button>
+        }
+    </header>
+
+    <div class="cw-rm-field">
+        <label for="rmPlayers">最大玩家数</label>
+        <select id="rmPlayers" @bind="_maxPlayers" disabled="@_busy">
+            @for (int i = 8; i >= 2; i--)
+            {
+                <option value="@i">@i</option>
+            }
+        </select>
+    </div>
+
+    <div class="cw-rm-field">
+        <label for="rmType">地形</label>
+        <select id="rmType" @bind="_type" disabled="@_busy">
+            @foreach (var (value, text) in Types)
+            {
+                <option value="@value">@text</option>
+            }
+        </select>
+    </div>
+
+    <div class="cw-rm-field">
+        <label for="rmSize">大小</label>
+        <select id="rmSize" @bind="_size" disabled="@_busy">
+            @for (int i = 0; i < Sizes.Length; i++)
+            {
+                <option value="@i">@Sizes[i]</option>
+            }
+        </select>
+    </div>
+
+    <div class="cw-rm-field">
+        <label for="rmDamage">战损</label>
+        <select id="rmDamage" @bind="_damage" disabled="@_busy">
+            @for (int i = 0; i < Damages.Length; i++)
+            {
+                <option value="@i">@Damages[i]</option>
+            }
+        </select>
+    </div>
+
+    <p class="cw-rm-hint">生成约需数秒，结果写入 Maps\Custom，地图列表会自动加入新地图。</p>
+
+    <div class="cw-rm-actions">
+        <button type="button" class="cw-rm-btn primary" disabled="@_busy" @onclick="GenerateAsync">
+            @(_busy ? "生成中…" : "生成")
+        </button>
+        @if (OnClose.HasDelegate)
+        {
+            <button type="button" class="cw-rm-btn" @onclick="Close">关闭</button>
+        }
+        else
+        {
+            <button type="button" class="cw-rm-btn" @onclick="BackToMenu">返回主菜单</button>
+        }
+    </div>
+
+    @if (_status.Length > 0)
+    {
+        <div class="cw-rm-status @(_statusOk ? "ok" : "err")">@_status</div>
+    }
+
+    <div class="cw-rm-list">
+        <div class="cw-rm-list-head">已有随机地图（最多 10 张）</div>
+        @if (_generated.Count == 0)
+        {
+            <div class="cw-rm-empty">暂无</div>
+        }
+        else
+        {
+            @foreach (string name in _generated)
+            {
+                <div class="cw-rm-item">@name</div>
+            }
+        }
+    </div>
+</section>
+
+@code {
+    /// <summary>关闭回调（弹窗模式传入；页面模式为空，改为返回主菜单）。</summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>地形选项：与旧客户端 RandomMapOptionWindow 的下拉项一致。</summary>
+    private static readonly (string Value, string Text)[] Types =
+    [
+        ("TEMPERATE", "温和"),
+        ("TEMPERATE_Islands", "温和岛屿"),
+        ("DESERT", "沙漠"),
+        ("NEWURBAN", "新城区"),
+    ];
+
+    private static readonly string[] Sizes = ["小", "中", "大", "极大"];
+    private static readonly string[] Damages = ["完好", "正常", "严重"];
+
+    private int _maxPlayers = 8;
+    private string _type = "TEMPERATE";
+    private int _size;
+    private int _damage;
+    private bool _busy;
+    private string _status = string.Empty;
+    private bool _statusOk = true;
+    private IReadOnlyList<string> _generated = Array.Empty<string>();
+    private readonly CancellationTokenSource _cts = new();
+
+    protected override void OnInitialized() => _generated = RandomMaps.ListGenerated();
+
+    private async Task GenerateAsync()
+    {
+        _busy = true;
+        _status = string.Empty;
+        StateHasChanged();
+
+        CwRandomMapResult result = await RandomMaps.GenerateAsync(
+            new CwRandomMapOptions(_maxPlayers, _type, _size, _damage), _cts.Token);
+
+        _busy = false;
+        _statusOk = result.Success;
+        _status = result.Message;
+        _generated = RandomMaps.ListGenerated();
+
+        if (!result.Success)
+            await JS.InvokeVoidAsync("cncnet.toast", result.Message, "err");
+    }
+
+    private Task Close() => OnClose.InvokeAsync();
+
+    private void BackToMenu() => Nav.NavigateTo("/menu");
+
+    public void Dispose() => _cts.Cancel();
+}

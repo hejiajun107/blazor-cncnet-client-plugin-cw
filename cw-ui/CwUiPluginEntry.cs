@@ -23,6 +23,7 @@ public sealed class CwUiPluginEntry : ICncNetPlugin
         context.Services.AddSingleton(env);
         context.Services.AddSingleton<CwReShadeService>();
         context.Services.AddSingleton<CwTipService>();
+        context.Services.AddSingleton<CwRandomMapService>();
         context.Services.AddSingleton<CwUpdateChecker>();
         context.Services.AddSingleton<CwStartupUpdateGate>();
         // 宿主启动检查前询问：大版本时返回 false，跳过在线更新（旧客户端语义）
@@ -45,5 +46,15 @@ public sealed class CwUiPluginEntry : ICncNetPlugin
 
         // 替换型槽位：主菜单列表外观（条目数据与点击仍由宿主提供，旧客户端玻璃贴片风）
         ui.ReplaceSlot("page.menu.list", typeof(Components.CwMainMenu));
+
+        // 启动闪屏品牌：CW 改名（ClientDefinitions.ini [LoadingScreen] 未生效时的可靠覆盖）
+        ui.SetLoadingScreenContent(new LoadingScreenContent
+        {
+            BrandTitle = "Century War",
+            BrandSubtitle = "COMMAND & CONQUER"
+        });
+
+        // 大厅地图工具条：生成按钮 + 弹窗（宿主槽位位于 GameLobby.razor 的 .map-tools 内）
+        ui.ContributeSlot("page.skirmish.map.tools", typeof(Components.CwMapTools));
     }
 }
