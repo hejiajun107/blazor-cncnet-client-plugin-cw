@@ -1,5 +1,6 @@
 using CnCNetClient.Plugin.Abstractions;
 using CwUi.Services;
+using CnCNetClient.Online;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CwUi;
@@ -21,6 +22,11 @@ public sealed class CwUiPluginEntry : ICncNetPlugin
     {
         CwEnvironment env = new(context.GameRoot, context.PluginDirectory);
         context.Services.AddSingleton(env);
+        // 隧道列表来源：覆盖宿主 ITunnelListProvider（官方 → racw 镜像 → 内置名单，[CN] 优先）
+        context.Services.AddSingleton<ITunnelListProvider, CwTunnelListProvider>();
+        // IRC 节点：覆盖宿主 IIrcServerListProvider（0=国内 irc.racw.top，1=国际沿用宿主配置）
+        context.Services.AddSingleton<CwIrcNodeSetting>();
+        context.Services.AddSingleton<IIrcServerListProvider, CwIrcServerListProvider>();
         context.Services.AddSingleton<CwReShadeService>();
         context.Services.AddSingleton<CwTipService>();
         context.Services.AddSingleton<CwRandomMapService>();

@@ -35,6 +35,15 @@
       <HintPath>$(CwClientAppDir)\CnCNetClient.Domain.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- IIrcServerListProvider（宿主 IRC 服务器列表扩展口）与 IniFile（读写 ClientSettings.ini） -->
+    <Reference Include="CnCNetClient.Online">
+      <HintPath>$(CwClientAppDir)\CnCNetClient.Online.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="CnCNetClient.Tools">
+      <HintPath>$(CwClientAppDir)\CnCNetClient.Tools.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -43,6 +52,8 @@
     <Content Include="plugin.css" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="cw-overlay.js" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\ReshadePreset.ini" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 隧道列表内置降级名单（官方 → racw 镜像都失败时使用，随插件目录部署） -->
+    <Content Include="Assets\tunnel_fallback.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
