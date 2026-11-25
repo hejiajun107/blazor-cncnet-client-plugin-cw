@@ -54,6 +54,8 @@
     <Content Include="Assets\ReshadePreset.ini" CopyToOutputDirectory="PreserveNewest" />
     <!-- 隧道列表内置降级名单（官方 → racw 镜像都失败时使用，随插件目录部署） -->
     <Content Include="Assets\tunnel_fallback.txt" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 节日限定 spawnmap.ini 补丁（日期区间与键值，运行时读取，无需重编译） -->
+    <Content Include="Assets\event_spawnmap.ini" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

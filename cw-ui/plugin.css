@@ -769,3 +769,16 @@ input[type="radio"]{color-scheme:dark}
 .cw-node-btn.on{background:linear-gradient(180deg,rgba(72,150,200,.9),rgba(28,82,124,.9));
   border-color:rgba(170,220,242,.75);color:#fff;box-shadow:0 0 10px rgba(90,170,220,.35)}
 .cw-node-hint{margin-top:7px;font-size:11px;color:#5f8ea3;letter-spacing:.5px}
+
+/* 设置页侧栏：Phobos 游戏内增强开关 */
+.cw-phobos{margin-top:10px}
+.cw-ph-row{display:flex;align-items:center;gap:8px;width:100%;margin-bottom:6px;padding:5px 6px;
+  font-size:12.5px;color:#a9c6d6;text-align:left;cursor:pointer;font-family:inherit;
+  background:rgba(20,44,66,.35);border:1px solid rgba(120,180,210,.18);border-radius:2px;transition:.15s}
+.cw-ph-row:last-of-type{margin-bottom:0}
+.cw-ph-row:hover{border-color:rgba(170,220,242,.5);background:rgba(34,72,104,.55)}
+.cw-ph-row.on{color:#e6f7ff;border-color:rgba(120,210,235,.55);background:rgba(28,78,110,.6)}
+.cw-ph-box{flex:none;width:14px;height:14px;line-height:13px;text-align:center;font-size:11px;
+  border:1px solid rgba(150,200,215,.45);border-radius:2px;color:#9ef0ff}
+.cw-ph-row.on .cw-ph-box{background:rgba(60,150,190,.85);border-color:rgba(170,230,250,.9)}
+.cw-ph-tx{flex:1}

@@ -1,6 +1,7 @@
 using CnCNetClient.Plugin.Abstractions;
 using CwUi.Services;
 using CnCNetClient.Online;
+using CnCNetClient.Tools;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CwUi;
@@ -28,6 +29,12 @@ public sealed class CwUiPluginEntry : ICncNetPlugin
         context.Services.AddSingleton<CwIrcNodeSetting>();
         context.Services.AddSingleton<IIrcServerListProvider, CwIrcServerListProvider>();
         context.Services.AddSingleton<CwReShadeService>();
+        // Phobos 游戏内增强开关：读写游戏自身 INI（RA2MD.ini）[Phobos]
+        context.Services.AddSingleton<CwPhobosService>();
+        // 节日限定 spawnmap.ini 补丁：覆盖宿主 ISpawnMapPatcher（日期与键值见 Assets/event_spawnmap.ini）
+        context.Services.AddSingleton<ISpawnMapPatcher, CwSpawnMapPatcher>();
+        // 昵称处理：覆盖宿主 IPlayerNameProcessor（非法字符替换为 '-'）
+        context.Services.AddSingleton<IPlayerNameProcessor, CwPlayerNameProcessor>();
         context.Services.AddSingleton<CwTipService>();
         context.Services.AddSingleton<CwRandomMapService>();
         context.Services.AddSingleton<CwUpdateChecker>();
