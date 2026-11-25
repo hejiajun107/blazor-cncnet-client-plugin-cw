@@ -1,0 +1,59 @@
+@using CwUi.Services
+@inject CwPhobosService Phobos
+
+@* 追加型槽位 page.settings.game：Phobos 游戏内增强，写游戏自身 INI（RA2MD.ini）[Phobos]，
+   与宿主设置页的草稿/保存相互独立（Phobos 在游戏启动时读取，改动下次进游戏生效）。 *@
+<div class="set-row">
+    <div class="set-info"><span class="set-name">建造预览</span><span class="set-hint">PHOBOS · 下次启动游戏生效</span></div>
+    <div class="set-ctl">
+        <label class="set-toggle">
+            <input type="checkbox" checked="@_phobos.ShowBuildingPlacementPreview"
+                   @onchange="e => Set(x => x.ShowBuildingPlacementPreview = Checked(e))" />
+            <span class="tk"></span>
+        </label>
+    </div>
+</div>
+<div class="set-row">
+    <div class="set-info"><span class="set-name">血量数字显示</span></div>
+    <div class="set-ctl">
+        <label class="set-toggle">
+            <input type="checkbox" checked="@_phobos.DigitalDisplay"
+                   @onchange="e => Set(x => x.DigitalDisplay = Checked(e))" />
+            <span class="tk"></span>
+        </label>
+    </div>
+</div>
+<div class="set-row">
+    <div class="set-info"><span class="set-name">超武侧边栏</span></div>
+    <div class="set-ctl">
+        <label class="set-toggle">
+            <input type="checkbox" checked="@_phobos.SuperWeaponSidebar"
+                   @onchange="e => Set(x => x.SuperWeaponSidebar = Checked(e))" />
+            <span class="tk"></span>
+        </label>
+    </div>
+</div>
+<div class="set-row">
+    <div class="set-info"><span class="set-name">增强任务消息提示</span></div>
+    <div class="set-ctl">
+        <label class="set-toggle">
+            <input type="checkbox" checked="@_phobos.ImprovedLabelDisplay"
+                   @onchange="e => Set(x => x.ImprovedLabelDisplay = Checked(e))" />
+            <span class="tk"></span>
+        </label>
+    </div>
+</div>
+
+@code {
+    private CwPhobosSettings _phobos = new();
+
+    protected override void OnInitialized() => _phobos = Phobos.Load();
+
+    private static bool Checked(ChangeEventArgs e) => e.Value is bool b && b;
+
+    private void Set(Action<CwPhobosSettings> mutate)
+    {
+        mutate(_phobos);
+        Phobos.Save(_phobos);
+    }
+}

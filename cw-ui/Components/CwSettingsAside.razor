@@ -1,7 +1,6 @@
 @using CwUi.Services
 @inject NavigationManager Nav
 @inject CwIrcNodeSetting IrcNode
-@inject CwPhobosService Phobos
 
 @* 追加型槽位 page.settings.aside：设置页左侧栏入口。 *@
 <button type="button" class="set-nav-item" @onclick='() => Nav.NavigateTo("/plugin/cw-ui/reshade")'>
@@ -19,71 +18,14 @@
     <div class="cw-node-hint">切换后下次进入大厅生效</div>
 </div>
 
-@* Phobos 游戏内增强：写游戏自身 INI（RA2MD.ini）[Phobos]，Phobos 启动时读取 *@
-<div class="cw-node cw-phobos">
-    <div class="cw-node-title">游戏增强 · PHOBOS</div>
-    <button type="button" class="cw-ph-row @(_phobos.ShowBuildingPlacementPreview ? "on" : "")" @onclick="() => Toggle(PhobosKey.Preview)">
-        <span class="cw-ph-box">@(_phobos.ShowBuildingPlacementPreview ? "✓" : "")</span>
-        <span class="cw-ph-tx">建造预览</span>
-    </button>
-    <button type="button" class="cw-ph-row @(_phobos.DigitalDisplay ? "on" : "")" @onclick="() => Toggle(PhobosKey.DigitalDisplay)">
-        <span class="cw-ph-box">@(_phobos.DigitalDisplay ? "✓" : "")</span>
-        <span class="cw-ph-tx">血量数字显示</span>
-    </button>
-    <button type="button" class="cw-ph-row @(_phobos.SuperWeaponSidebar ? "on" : "")" @onclick="() => Toggle(PhobosKey.SuperWeaponSidebar)">
-        <span class="cw-ph-box">@(_phobos.SuperWeaponSidebar ? "✓" : "")</span>
-        <span class="cw-ph-tx">超武侧边栏</span>
-    </button>
-    <button type="button" class="cw-ph-row @(_phobos.ImprovedLabelDisplay ? "on" : "")" @onclick="() => Toggle(PhobosKey.ImprovedLabelDisplay)">
-        <span class="cw-ph-box">@(_phobos.ImprovedLabelDisplay ? "✓" : "")</span>
-        <span class="cw-ph-tx">增强任务消息提示</span>
-    </button>
-    <div class="cw-node-hint">写入游戏 INI [Phobos]，下次启动游戏生效</div>
-</div>
-
 @code {
     private int _node;
 
-    private CwPhobosSettings _phobos = new();
-
-    private enum PhobosKey
-    {
-        Preview,
-        DigitalDisplay,
-        SuperWeaponSidebar,
-        ImprovedLabelDisplay
-    }
-
-    protected override void OnInitialized()
-    {
-        _node = IrcNode.Node;
-        _phobos = Phobos.Load();
-    }
+    protected override void OnInitialized() => _node = IrcNode.Node;
 
     private void SetNode(int node)
     {
         _node = node;
         IrcNode.Node = node;
-    }
-
-    private void Toggle(PhobosKey key)
-    {
-        switch (key)
-        {
-            case PhobosKey.Preview:
-                _phobos.ShowBuildingPlacementPreview = !_phobos.ShowBuildingPlacementPreview;
-                break;
-            case PhobosKey.DigitalDisplay:
-                _phobos.DigitalDisplay = !_phobos.DigitalDisplay;
-                break;
-            case PhobosKey.SuperWeaponSidebar:
-                _phobos.SuperWeaponSidebar = !_phobos.SuperWeaponSidebar;
-                break;
-            case PhobosKey.ImprovedLabelDisplay:
-                _phobos.ImprovedLabelDisplay = !_phobos.ImprovedLabelDisplay;
-                break;
-        }
-
-        Phobos.Save(_phobos);
     }
 }

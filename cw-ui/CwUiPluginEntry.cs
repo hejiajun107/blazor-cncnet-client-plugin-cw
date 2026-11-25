@@ -51,6 +51,9 @@ public sealed class CwUiPluginEntry : ICncNetPlugin
         // 追加型槽位：设置页左侧栏入口
         ui.ContributeSlot("page.settings.aside", typeof(Components.CwSettingsAside));
 
+        // 追加型槽位：设置页「游戏」分区末尾（Phobos 游戏内增强开关）
+        ui.ContributeSlot("page.settings.game", typeof(Components.CwPhobosOptions));
+
         // 追加型槽位：战役页任务列表（按阵营分组，替换内置扁平列表）
         ui.ContributeSlot("page.campaign.aside", typeof(Components.CwCampaignGroups));
 
