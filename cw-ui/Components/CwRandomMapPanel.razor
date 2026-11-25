@@ -8,16 +8,16 @@
 
 <section class="cw-rm-card">
     <header class="cw-rm-head">
-        <span class="cw-rm-title">随机地图生成</span>
+        <span class="cw-rm-title">@CwText.T("RandomMap.Title", "随机地图生成")</span>
         <span class="cw-rm-sub">RANDOM MAP</span>
         @if (OnClose.HasDelegate)
         {
-            <button type="button" class="cw-rm-close" title="关闭" @onclick="Close">✕</button>
+            <button type="button" class="cw-rm-close" title="@CwText.T("RandomMap.Close", "关闭")" @onclick="Close">✕</button>
         }
     </header>
 
     <div class="cw-rm-field">
-        <label for="rmPlayers">最大玩家数</label>
+        <label for="rmPlayers">@CwText.T("RandomMap.MaxPlayers", "最大玩家数")</label>
         <select id="rmPlayers" @bind="_maxPlayers" disabled="@_busy">
             @for (int i = 8; i >= 2; i--)
             {
@@ -27,48 +27,48 @@
     </div>
 
     <div class="cw-rm-field">
-        <label for="rmType">地形</label>
+        <label for="rmType">@CwText.T("RandomMap.Terrain", "地形")</label>
         <select id="rmType" @bind="_type" disabled="@_busy">
             @foreach (var (value, text) in Types)
             {
-                <option value="@value">@text</option>
+                <option value="@value">@CwText.T("RandomMap.Type." + value, text)</option>
             }
         </select>
     </div>
 
     <div class="cw-rm-field">
-        <label for="rmSize">大小</label>
+        <label for="rmSize">@CwText.T("RandomMap.Size", "大小")</label>
         <select id="rmSize" @bind="_size" disabled="@_busy">
             @for (int i = 0; i < Sizes.Length; i++)
             {
-                <option value="@i">@Sizes[i]</option>
+                <option value="@i">@CwText.T("RandomMap.Size." + i, Sizes[i])</option>
             }
         </select>
     </div>
 
     <div class="cw-rm-field">
-        <label for="rmDamage">战损</label>
+        <label for="rmDamage">@CwText.T("RandomMap.Damage", "战损")</label>
         <select id="rmDamage" @bind="_damage" disabled="@_busy">
             @for (int i = 0; i < Damages.Length; i++)
             {
-                <option value="@i">@Damages[i]</option>
+                <option value="@i">@CwText.T("RandomMap.Damage." + i, Damages[i])</option>
             }
         </select>
     </div>
 
-    <p class="cw-rm-hint">生成约需数秒，结果写入 Maps\Custom，地图列表会自动加入新地图。</p>
+    <p class="cw-rm-hint">@CwText.T("RandomMap.Hint", "生成约需数秒，结果写入 Maps\\Custom，地图列表会自动加入新地图。")</p>
 
     <div class="cw-rm-actions">
         <button type="button" class="cw-rm-btn primary" disabled="@_busy" @onclick="GenerateAsync">
-            @(_busy ? "生成中…" : "生成")
+            @(_busy ? CwText.T("RandomMap.Generating", "生成中…") : CwText.T("RandomMap.Generate", "生成"))
         </button>
         @if (OnClose.HasDelegate)
         {
-            <button type="button" class="cw-rm-btn" @onclick="Close">关闭</button>
+            <button type="button" class="cw-rm-btn" @onclick="Close">@CwText.T("RandomMap.Close", "关闭")</button>
         }
         else
         {
-            <button type="button" class="cw-rm-btn" @onclick="BackToMenu">返回主菜单</button>
+            <button type="button" class="cw-rm-btn" @onclick="BackToMenu">@CwText.T("RandomMap.BackToMenu", "返回主菜单")</button>
         }
     </div>
 
@@ -78,10 +78,10 @@
     }
 
     <div class="cw-rm-list">
-        <div class="cw-rm-list-head">已有随机地图（最多 10 张）</div>
+        <div class="cw-rm-list-head">@CwText.T("RandomMap.Existing", "已有随机地图（最多 10 张）")</div>
         @if (_generated.Count == 0)
         {
-            <div class="cw-rm-empty">暂无</div>
+            <div class="cw-rm-empty">@CwText.T("RandomMap.None", "暂无")</div>
         }
         else
         {

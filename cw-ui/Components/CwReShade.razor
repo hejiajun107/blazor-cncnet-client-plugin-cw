@@ -8,10 +8,10 @@
 <div class="settings page-anim">
     <header class="settings-top item-in">
         <div class="st-left">
-            <button type="button" class="mb-btn" @onclick="Back">‹ 返回</button>
+            <button type="button" class="mb-btn" @onclick="Back">‹ @CwText.T("ReShade.Back", "返回")</button>
         </div>
         <div class="st-mid">
-            <span class="st-title">画质增强</span>
+            <span class="st-title">@CwText.T("ReShade.Title", "画质增强")</span>
             <span class="st-en">RESHADE · DISPLAY ENHANCEMENT</span>
         </div>
         <div class="st-right">
@@ -21,28 +21,28 @@
 
     <div class="settings-grid cw-rs-grid">
         <section class="set-panel item-in" style="animation-delay:60ms">
-            <p class="cw-rs-desc">选择需要开启的 ReShade 效果（需在 设置 → 显示 → 渲染器 选择「画质增强」）。</p>
+            <p class="cw-rs-desc">@CwText.T("ReShade.Desc", "选择需要开启的 ReShade 效果（需在 设置 → 显示 → 渲染器 选择「画质增强」）。")</p>
 
             <div class="set-row">
                 <div class="set-info">
-                    <span class="set-name">辉光强度</span>
-                    <span class="set-hint">BLOOM · 无 / 低 / 中 / 高(推荐) / 超高</span>
+                    <span class="set-name">@CwText.T("ReShade.Bloom", "辉光强度")</span>
+                    <span class="set-hint">@CwText.T("ReShade.BloomHint", "BLOOM · 无 / 低 / 中 / 高(推荐) / 超高")</span>
                 </div>
                 <div class="set-ctl">
                     <select class="set-select" @bind="_settings.BloomLevel">
-                        <option value="0">无</option>
-                        <option value="1">低</option>
-                        <option value="2">中</option>
-                        <option value="3">高(推荐)</option>
-                        <option value="4">超高</option>
+                        <option value="0">@CwText.T("ReShade.Bloom0", "无")</option>
+                        <option value="1">@CwText.T("ReShade.Bloom1", "低")</option>
+                        <option value="2">@CwText.T("ReShade.Bloom2", "中")</option>
+                        <option value="3">@CwText.T("ReShade.Bloom3", "高(推荐)")</option>
+                        <option value="4">@CwText.T("ReShade.Bloom4", "超高")</option>
                     </select>
                 </div>
             </div>
 
             <div class="set-row">
                 <div class="set-info">
-                    <span class="set-name">昼夜变化</span>
-                    <span class="set-hint">进入昼夜循环，不建议在黑夜地图使用</span>
+                    <span class="set-name">@CwText.T("ReShade.DayNight", "昼夜变化")</span>
+                    <span class="set-hint">@CwText.T("ReShade.DayNightHint", "进入昼夜循环，不建议在黑夜地图使用")</span>
                 </div>
                 <div class="set-ctl">
                     <label class="set-toggle">
@@ -54,8 +54,8 @@
 
             <div class="set-row">
                 <div class="set-info">
-                    <span class="set-name">水面增强</span>
-                    <span class="set-hint">开启后会替换游戏的水面</span>
+                    <span class="set-name">@CwText.T("ReShade.Water", "水面增强")</span>
+                    <span class="set-hint">@CwText.T("ReShade.WaterHint", "开启后会替换游戏的水面")</span>
                 </div>
                 <div class="set-ctl">
                     <label class="set-toggle">
@@ -67,8 +67,8 @@
 
             <div class="set-row">
                 <div class="set-info">
-                    <span class="set-name">云层渲染</span>
-                    <span class="set-hint">较占显卡资源，建议根据情况开启</span>
+                    <span class="set-name">@CwText.T("ReShade.Clouds", "云层渲染")</span>
+                    <span class="set-hint">@CwText.T("ReShade.CloudsHint", "较占显卡资源，建议根据情况开启")</span>
                 </div>
                 <div class="set-ctl">
                     <label class="set-toggle">
@@ -80,8 +80,8 @@
 
             <div class="set-row">
                 <div class="set-info">
-                    <span class="set-name">HDR</span>
-                    <span class="set-hint">高动态范围成像</span>
+                    <span class="set-name">@CwText.T("ReShade.HDR", "HDR")</span>
+                    <span class="set-hint">@CwText.T("ReShade.HDRHint", "高动态范围成像")</span>
                 </div>
                 <div class="set-ctl">
                     <label class="set-toggle">
@@ -93,8 +93,8 @@
 
             <div class="set-row">
                 <div class="set-info">
-                    <span class="set-name">清晰化</span>
-                    <span class="set-hint">强化纹理</span>
+                    <span class="set-name">@CwText.T("ReShade.Clarity", "清晰化")</span>
+                    <span class="set-hint">@CwText.T("ReShade.ClarityHint", "强化纹理")</span>
                 </div>
                 <div class="set-ctl">
                     <label class="set-toggle">
@@ -106,8 +106,8 @@
 
             <div class="set-row">
                 <div class="set-info">
-                    <span class="set-name">高对比度</span>
-                    <span class="set-hint">提高色彩对比度，使颜色更鲜艳</span>
+                    <span class="set-name">@CwText.T("ReShade.Contrast", "高对比度")</span>
+                    <span class="set-hint">@CwText.T("ReShade.ContrastHint", "提高色彩对比度，使颜色更鲜艳")</span>
                 </div>
                 <div class="set-ctl">
                     <label class="set-toggle">
@@ -119,8 +119,8 @@
 
             <div class="set-row">
                 <div class="set-info">
-                    <span class="set-name">氛围感</span>
-                    <span class="set-hint">降低整体亮度，更有战场氛围，建议与 HDR 一起开启</span>
+                    <span class="set-name">@CwText.T("ReShade.Atmosphere", "氛围感")</span>
+                    <span class="set-hint">@CwText.T("ReShade.AtmosphereHint", "降低整体亮度，更有战场氛围，建议与 HDR 一起开启")</span>
                 </div>
                 <div class="set-ctl">
                     <label class="set-toggle">
@@ -130,14 +130,14 @@
                 </div>
             </div>
 
-            <p class="cw-rs-note">*以上效果根据自己喜好和游戏内实际效果开启，并非全部开启效果最佳。</p>
+            <p class="cw-rs-note">@CwText.T("ReShade.Note", "*以上效果根据自己喜好和游戏内实际效果开启，并非全部开启效果最佳。")</p>
         </section>
     </div>
 
     <footer class="set-bar item-in" style="animation-delay:120ms">
         <span class="set-bar-status">@_message</span>
-        <button type="button" class="mb-btn" @onclick="Back">返回</button>
-        <button type="button" class="mb-btn primary" @onclick="Save">保存设置</button>
+        <button type="button" class="mb-btn" @onclick="Back">@CwText.T("ReShade.Back", "返回")</button>
+        <button type="button" class="mb-btn primary" @onclick="Save">@CwText.T("ReShade.Save", "保存设置")</button>
     </footer>
 </div>
 
@@ -149,7 +149,7 @@
     protected override void OnInitialized()
     {
         _settings = ReShade.Load();
-        _message = $"设置文件：{ReShade.SettingsPath}";
+        _message = string.Format(CwText.T("ReShade.SettingsPath", "设置文件：{0}"), ReShade.SettingsPath);
     }
 
     private void Save()
@@ -157,12 +157,12 @@
         try
         {
             ReShade.Save(_settings);
-            _status = "已保存";
-            _message = $"已保存，重新启动游戏后生效（预设：{ReShade.PresetPath}）";
+            _status = CwText.T("ReShade.SavedStatus", "已保存");
+            _message = string.Format(CwText.T("ReShade.SavedMessage", "已保存，重新启动游戏后生效（预设：{0}）"), ReShade.PresetPath);
         }
         catch (Exception ex)
         {
-            _status = "保存失败";
+            _status = CwText.T("ReShade.SaveFailed", "保存失败");
             _message = ex.Message;
         }
     }

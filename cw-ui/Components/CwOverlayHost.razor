@@ -113,16 +113,19 @@
                 return;
 
             string title = string.IsNullOrWhiteSpace(result.NextVersion)
-                ? "检测到新的版本"
-                : $"检测到新的版本 {result.NextVersion}";
+                ? CwText.T("Update.NewVersion", "检测到新的版本")
+                : string.Format(CwText.T("Update.NewVersionWith", "检测到新的版本 {0}"), result.NextVersion);
 
             await JS.InvokeVoidAsync(
                 "cwUi.showUpdate",
                 _self,
                 title,
-                "当前版本无法在线更新到最新版本，请点击以下地址手动下载。",
+                CwText.T("Update.ManualRequired", "当前版本无法在线更新到最新版本，请点击以下地址手动下载。"),
                 result.DownloadUrl1,
-                result.DownloadUrl2);
+                result.DownloadUrl2,
+                CwText.T("Update.Download1", "下载地址 1"),
+                CwText.T("Update.Download2", "下载地址 2"),
+                CwText.T("Update.Back", "返 回"));
         }
         catch
         {

@@ -13,24 +13,24 @@
 <div class="cw-camp">
     <div class="camp-tags">
         <button type="button" class="ct-btn @(_activeGroup is null ? "on" : "")"
-                @onclick="() => SetGroup(null)">全部</button>
+                @onclick="() => SetGroup(null)">@CwText.T("Campaign.All", "全部")</button>
         @foreach (FactionGroup group in _groups)
         {
             <button type="button" class="ct-btn @(_activeGroup == group.Id ? "on" : "")"
-                    @onclick="() => SetGroup(group.Id)">@group.Label</button>
+                    @onclick="() => SetGroup(group.Id)">@CwText.T("CampaignGroup." + group.Label, group.Label)</button>
         }
     </div>
 
     <div class="cw-camp-list">
         @if (_groups.Count == 0)
         {
-            <div class="camp-empty">暂无可用任务</div>
+            <div class="camp-empty">@CwText.T("Campaign.Empty", "暂无可用任务")</div>
         }
         else
         {
             @foreach (FactionGroup group in VisibleGroups())
             {
-                <div class="cw-camp-head">@group.Label</div>
+                <div class="cw-camp-head">@CwText.T("CampaignGroup." + group.Label, group.Label)</div>
                 @foreach (Mission mission in group.Missions)
                 {
                     <button type="button"

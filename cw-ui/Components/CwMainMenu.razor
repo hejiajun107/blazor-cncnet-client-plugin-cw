@@ -38,7 +38,7 @@
         {
             <button type="button" class="cw-mm-link" @onclick="() => OpenLink(link)">
                 <span class="cw-mm-link-ic" aria-hidden="true">@((MarkupString)link.Icon)</span>
-                <span>@link.Label</span>
+                <span>@CwText.T(link.Key, link.Label)</span>
             </button>
         }
     </div>
@@ -88,8 +88,8 @@
             .Where(i => !i.Key.Equals("exit", StringComparison.OrdinalIgnoreCase))
             .ToDictionary(i => i.Key, i => i, StringComparer.OrdinalIgnoreCase);
         // 老客户端的「资料库」(btnDatabase) 新客户端没有对应入口，这里补一枚插件自有的大贴片
-        _items[DocsKey] = new MainMenuTileItem(DocsKey, "资料库", "Database", "❖", false, true);
-        _items[ExitKey] = new MainMenuTileItem(ExitKey, "退出", "Exit", "✕", false, true);
+        _items[DocsKey] = new MainMenuTileItem(DocsKey, CwText.T("Menu.Database", "资料库"), "Database", "❖", false, true);
+        _items[ExitKey] = new MainMenuTileItem(ExitKey, CwText.T("Menu.Exit", "退出"), "Exit", "✕", false, true);
         BuildColumns();
     }
 
@@ -212,13 +212,13 @@
     private const string DocsUrl = "http://doc.racw.top/";
 
     /// <summary>旧客户端自带的外链按钮（原 XNA MainMenu.cs 的 btnQQ / btnBili / btnFactory，URL 与之一致）。</summary>
-    private sealed record CwLink(string Label, string Url, string Icon);
+    private sealed record CwLink(string Key, string Label, string Url, string Icon);
 
     private static readonly CwLink[] Links =
     [
-        new("QQ群", "https://jq.qq.com/?wv=1027&k=jCwJpi2B", BrandQq),
-        new("哔哩哔哩", "https://space.bilibili.com/38860280", BrandBilibili),
-        new("创意工坊", "http://diy.racw.top/", WorkshopIcon),
+        new("Menu.QQ", "QQ群", "https://jq.qq.com/?wv=1027&k=jCwJpi2B", BrandQq),
+        new("Menu.Bilibili", "哔哩哔哩", "https://space.bilibili.com/38860280", BrandBilibili),
+        new("Menu.Workshop", "创意工坊", "http://diy.racw.top/", WorkshopIcon),
     ];
 
     // 品牌图标来源 Simple Icons（QQ / Bilibili 官方标志，CC0），内联为 currentColor，随按钮文字一起变亮

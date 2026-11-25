@@ -5,17 +5,17 @@
 @* 追加型槽位 page.settings.aside：设置页左侧栏入口。 *@
 <button type="button" class="set-nav-item" @onclick='() => Nav.NavigateTo("/plugin/cw-ui/reshade")'>
     <span class="set-nav-ic">◈</span>
-    <span class="set-nav-tx"><span class="cn">画质增强</span></span>
+    <span class="set-nav-tx"><span class="cn">@CwText.T("Settings.Reshade", "画质增强")</span></span>
 </button>
 
 @* IRC 大厅节点切换：写 ClientSettings.ini [MultiPlayer] IRCServerNode，下次进入大厅（重连）生效 *@
 <div class="cw-node">
-    <div class="cw-node-title">大厅节点</div>
+    <div class="cw-node-title">@CwText.T("Settings.Node", "大厅节点")</div>
     <div class="cw-node-btns">
-        <button type="button" class="cw-node-btn @(_node == 0 ? "on" : "")" @onclick="() => SetNode(0)">国内</button>
-        <button type="button" class="cw-node-btn @(_node == 1 ? "on" : "")" @onclick="() => SetNode(1)">国际</button>
+        <button type="button" class="cw-node-btn @(_node == 0 ? "on" : "")" @onclick="() => SetNode(0)">@CwText.T("Settings.NodeDomestic", "国内")</button>
+        <button type="button" class="cw-node-btn @(_node == 1 ? "on" : "")" @onclick="() => SetNode(1)">@CwText.T("Settings.NodeInternational", "国际")</button>
     </div>
-    <div class="cw-node-hint">切换后下次进入大厅生效</div>
+    <div class="cw-node-hint">@CwText.T("Settings.NodeHint", "切换后下次进入大厅生效")</div>
 </div>
 
 @code {

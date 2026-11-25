@@ -80,17 +80,17 @@
         modal = null;
     }
 
-    function showUpdate(dotnetRef, title, body, url1, url2) {
+    function showUpdate(dotnetRef, title, body, url1, url2, dl1Label, dl2Label, backLabel) {
         closeUpdate();
         var host = ensureRoot();
         var urls = [url1 || '', url2 || ''];
         var links = '';
 
         if (urls[0]) {
-            links += '<button type="button" class="cw-upd-link" data-url="0">下载地址 1<span>' + esc(urls[0]) + '</span></button>';
+            links += '<button type="button" class="cw-upd-link" data-url="0">' + esc(dl1Label || 'Download link 1') + '<span>' + esc(urls[0]) + '</span></button>';
         }
         if (urls[1]) {
-            links += '<button type="button" class="cw-upd-link" data-url="1">下载地址 2<span>' + esc(urls[1]) + '</span></button>';
+            links += '<button type="button" class="cw-upd-link" data-url="1">' + esc(dl2Label || 'Download link 2') + '<span>' + esc(urls[1]) + '</span></button>';
         }
 
         modal = document.createElement('div');
@@ -100,7 +100,7 @@
             '<div class="cw-upd-head"><span class="cw-upd-ic">!</span><b class="cw-upd-title">' + esc(title) + '</b></div>' +
             '<div class="cw-upd-body">' + esc(body) + '</div>' +
             '<div class="cw-upd-links">' + links + '</div>' +
-            '<div class="cw-upd-foot"><button type="button" class="cw-upd-close">返 回</button></div>' +
+            '<div class="cw-upd-foot"><button type="button" class="cw-upd-close">' + esc(backLabel || 'Back') + '</button></div>' +
             '</div>';
 
         host.appendChild(modal);

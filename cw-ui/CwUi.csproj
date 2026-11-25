@@ -31,6 +31,10 @@
       <HintPath>$(CwClientAppDir)\BlazorCncnetClient.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="CnCNetClient.Core">
+      <HintPath>$(CwClientAppDir)\CnCNetClient.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="CnCNetClient.Domain">
       <HintPath>$(CwClientAppDir)\CnCNetClient.Domain.dll</HintPath>
       <Private>false</Private>

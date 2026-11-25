@@ -35,6 +35,10 @@ public sealed class CwTipService
             .Where(text => text.Length > 0)
             .ToList();
 
+        // 贴士按序号查表（Plugin:CwUi:Tip.N），未收录时保持原文
+        for (int i = 0; i < items.Count; i++)
+            items[i] = CwText.T("Tip." + (i + 1), items[i]);
+
         return new CwTipContent(visible ? items : new List<string>(), interval <= 0 ? 5000 : interval);
     }
 }

@@ -1,8 +1,8 @@
 @* 大厅地图工具条按钮（宿主槽位 page.skirmish.map.tools）：
    直接在弹窗里生成，避免跳页离开当前大厅会话。 *@
 
-<button type="button" class="mt-btn cw-mt-gen" title="生成随机地图" @onclick="() => _open = true">
-    <span class="mt-label">生成</span>
+<button type="button" class="mt-btn cw-mt-gen" title="@CwText.T("MapTools.GenerateTitle", "生成随机地图")" @onclick="() => _open = true">
+    <span class="mt-label">@CwText.T("MapTools.Generate", "生成")</span>
 </button>
 
 @if (_open)

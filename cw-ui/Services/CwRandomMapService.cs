@@ -49,13 +49,13 @@ public sealed class CwRandomMapService
     public async Task<CwRandomMapResult> GenerateAsync(CwRandomMapOptions options, CancellationToken ct = default)
     {
         if (!await _gate.WaitAsync(0, ct))
-            return new CwRandomMapResult(false, "正在生成中，请稍候…");
+            return new CwRandomMapResult(false, CwText.T("RandomMap.Busy", "正在生成中，请稍候…"));
 
         try
         {
             string exe = Path.Combine(GeneratorDirectory, "RandomMapGenerator.exe");
             if (!File.Exists(exe))
-                return new CwRandomMapResult(false, "未找到随机地图生成器（Resources/RandomMapGenerator/RandomMapGenerator.exe）");
+                return new CwRandomMapResult(false, CwText.T("RandomMap.GeneratorMissing", "未找到随机地图生成器（Resources/RandomMapGenerator/RandomMapGenerator.exe）"));
 
             string output = Path.Combine(GeneratorDirectory, "Output", "随机地图.yrm");
             Directory.CreateDirectory(Path.GetDirectoryName(output)!);
@@ -89,7 +89,9 @@ public sealed class CwRandomMapService
             catch (OperationCanceledException)
             {
                 TryKill(process);
-                return new CwRandomMapResult(false, ct.IsCancellationRequested ? "已取消生成" : "生成超时（超过 4 分钟）");
+                return new CwRandomMapResult(false, ct.IsCancellationRequested
+                    ? CwText.T("RandomMap.Cancelled", "已取消生成")
+                    : CwText.T("RandomMap.Timeout", "生成超时（超过 4 分钟）"));
             }
 
             string log = (await stdout).Trim();
@@ -97,8 +99,10 @@ public sealed class CwRandomMapService
                 log = (await stderr).Trim();
 
             if (process.ExitCode != 0 || !File.Exists(output))
-                return new CwRandomMapResult(false,
-                    $"生成失败（退出码 {process.ExitCode}）{(log.Length > 0 ? "：" + LastLine(log) : string.Empty)}");
+                return new CwRandomMapResult(false, string.Format(
+                    CwText.T("RandomMap.Failed", "生成失败（退出码 {0}）{1}"),
+                    process.ExitCode,
+                    log.Length > 0 ? CwText.T("RandomMap.DetailSeparator", "：") + LastLine(log) : string.Empty));
 
             Directory.CreateDirectory(CustomMapsDirectory);
             for (int i = 1; i <= MaxGeneratedMaps; i++)
@@ -112,14 +116,14 @@ public sealed class CwRandomMapService
                 // 宿主 MapFileWatcher 监听 Maps/Custom，新文件会自动加入内存地图集合；
                 // LoadMapsAsync 仅在首次加载时真正执行，这里作为兜底（已加载时是空操作）。
                 await _maps.LoadMapsAsync();
-                return new CwRandomMapResult(true, $"已生成 {fileName}", fileName);
+                return new CwRandomMapResult(true, string.Format(CwText.T("RandomMap.Generated", "已生成 {0}"), fileName), fileName);
             }
 
-            return new CwRandomMapResult(false, "随机地图数量过多，请先删除原有的随机地图（遭遇战地图列表右键删除）");
+            return new CwRandomMapResult(false, CwText.T("RandomMap.TooMany", "随机地图数量过多，请先删除原有的随机地图（遭遇战地图列表右键删除）"));
         }
         catch (Exception ex)
         {
-            return new CwRandomMapResult(false, "生成异常：" + ex.Message);
+            return new CwRandomMapResult(false, string.Format(CwText.T("RandomMap.Error", "生成异常：{0}"), ex.Message));
         }
         finally
         {

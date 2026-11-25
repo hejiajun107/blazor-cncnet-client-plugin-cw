@@ -4,7 +4,7 @@
 @* 追加型槽位 page.settings.game：Phobos 游戏内增强，写游戏自身 INI（RA2MD.ini）[Phobos]，
    与宿主设置页的草稿/保存相互独立（Phobos 在游戏启动时读取，改动下次进游戏生效）。 *@
 <div class="set-row">
-    <div class="set-info"><span class="set-name">建造预览</span><span class="set-hint">PHOBOS · 下次启动游戏生效</span></div>
+    <div class="set-info"><span class="set-name">@CwText.T("Phobos.Preview", "建造预览")</span><span class="set-hint">@CwText.T("Phobos.Hint", "PHOBOS · 下次启动游戏生效")</span></div>
     <div class="set-ctl">
         <label class="set-toggle">
             <input type="checkbox" checked="@_phobos.ShowBuildingPlacementPreview"
@@ -14,7 +14,7 @@
     </div>
 </div>
 <div class="set-row">
-    <div class="set-info"><span class="set-name">血量数字显示</span></div>
+    <div class="set-info"><span class="set-name">@CwText.T("Phobos.DigitalDisplay", "血量数字显示")</span></div>
     <div class="set-ctl">
         <label class="set-toggle">
             <input type="checkbox" checked="@_phobos.DigitalDisplay"
@@ -24,7 +24,7 @@
     </div>
 </div>
 <div class="set-row">
-    <div class="set-info"><span class="set-name">超武侧边栏</span></div>
+    <div class="set-info"><span class="set-name">@CwText.T("Phobos.SuperWeaponSidebar", "超武侧边栏")</span></div>
     <div class="set-ctl">
         <label class="set-toggle">
             <input type="checkbox" checked="@_phobos.SuperWeaponSidebar"
@@ -34,7 +34,7 @@
     </div>
 </div>
 <div class="set-row">
-    <div class="set-info"><span class="set-name">增强任务消息提示</span></div>
+    <div class="set-info"><span class="set-name">@CwText.T("Phobos.ImprovedLabelDisplay", "增强任务消息提示")</span></div>
     <div class="set-ctl">
         <label class="set-toggle">
             <input type="checkbox" checked="@_phobos.ImprovedLabelDisplay"
