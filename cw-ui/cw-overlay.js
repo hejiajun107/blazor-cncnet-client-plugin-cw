@@ -5,6 +5,15 @@
     'use strict';
     if (window.cwUi) return;
 
+    // 记录最近的 JS/资源加载错误，供插件组件通过 cwUi.lastError() 诊断
+    window.addEventListener('error', function (e) {
+        var t = e.target;
+        if (t && t.tagName === 'SCRIPT')
+            window.__cwErr = 'script load failed: ' + (t.src || '');
+        else
+            window.__cwErr = (e.message || 'error') + ' @' + (e.filename || '') + ':' + (e.lineno || 0);
+    }, true);
+
     var root = null;
     var tipsBox = null;
     var tipsText = null;
@@ -124,11 +133,33 @@
         if (closeButton) closeButton.addEventListener('click', closeUpdate);
     }
 
+    /* 按顺序加载外部脚本（幂等）：用于战役沙盘的本地 three.js 与场景脚本按需注入。
+       参数逐个传入（避免数组跨 JSInterop 序列化差异）。 */
+    function loadScripts() {
+        var list = Array.prototype.slice.call(arguments).filter(function (s) { return !!s; });
+        return list.reduce(function (pending, src) {
+            return pending.then(function () {
+                if (document.querySelector('script[data-cw-src="' + src + '"]')) return;
+                return new Promise(function (resolve, reject) {
+                    var el = document.createElement('script');
+                    el.src = src;
+                    el.async = false;
+                    el.setAttribute('data-cw-src', src);
+                    el.onload = function () { resolve(); };
+                    el.onerror = function () { reject(new Error('script load failed: ' + src)); };
+                    document.head.appendChild(el);
+                });
+            });
+        }, Promise.resolve());
+    }
+
     window.cwUi = {
         ping: function () { },
         showTips: showTips,
         hideTips: hideTips,
         showUpdate: showUpdate,
-        closeUpdate: closeUpdate
+        closeUpdate: closeUpdate,
+        loadScripts: loadScripts,
+        lastError: function () { return window.__cwErr || ''; }
     };
 })();

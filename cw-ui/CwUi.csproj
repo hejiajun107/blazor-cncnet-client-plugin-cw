@@ -55,6 +55,9 @@
     <Content Include="plugin.ini" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="plugin.css" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="cw-overlay.js" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 战役全息沙盘脚本与本地 three.js（随插件分发，禁止 CDN） -->
+    <Content Include="cw-campaign-sandbox.js" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\three.min.js" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\ReshadePreset.ini" CopyToOutputDirectory="PreserveNewest" />
     <!-- 隧道列表内置降级名单（官方 → racw 镜像都失败时使用，随插件目录部署） -->
     <Content Include="Assets\tunnel_fallback.txt" CopyToOutputDirectory="PreserveNewest" />

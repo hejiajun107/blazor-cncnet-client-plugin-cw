@@ -1,0 +1,567 @@
+@using BlazorCncnetClient.Infrastructure
+@using CnCNetClient.Core
+@using CnCNetClient.Core.Extensions
+@using CnCNetClient.Domain
+@using CwUi.Services
+@using System.Text.Json
+@using Microsoft.Extensions.Logging
+@using Microsoft.JSInterop
+@inject CampaignService Svc
+@inject CampaignLaunchService Launcher
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject CwEnvironment Env
+@inject ILogger<CwCampaignSandbox> Logger
+@implements IDisposable
+
+@* 替换型槽位 page.campaign：战役页全息战术沙盘。
+   任务数据/难度/启动仍走宿主 CampaignService 与 CampaignLaunchService，
+   本组件只负责阵营分区、沙盘点位、列表联动与详情浮框。 *@
+
+<div class="cw-cs-root" style="--fcolor:@ActiveColor">
+    <header class="cw-cs-top">
+        <div class="cw-cs-brand">
+            <span class="cw-cs-kicker">CAMPAIGN · TACTICAL TABLE</span>
+            <span class="cw-cs-title">@T("Title", "战役")</span>
+        </div>
+        <div class="cw-cs-top-right">
+            <span class="cw-cs-player">@ProgramConstants.PLAYERNAME</span>
+            <button type="button" class="mb-btn" @onclick="Back">@T("Back", "返回主菜单")</button>
+        </div>
+    </header>
+
+    <div class="cw-cs-main">
+        <aside class="cw-cs-rail">
+            <div class="cw-cs-rail-h">@T("Factions", "阵营")</div>
+            <div class="cw-cs-factions">
+                @for (int i = 0; i < _factions.Count; i++)
+                {
+                    int idx = i;
+                    <button type="button" class="cw-cs-fbtn @(_active == idx ? "on" : "")"
+                            style="--fcolor:@_factions[idx].Color"
+                            @onclick="() => SetFaction(idx)">
+                        <span class="cw-cs-fdot"></span>
+                        <span class="cw-cs-fname">@_factions[idx].Label</span>
+                    </button>
+                }
+            </div>
+
+            <div class="cw-cs-rail-h">@T("Missions", "任务")</div>
+            <div class="cw-cs-list">
+                @if (_active < 0 || _active >= _factions.Count || _factions[_active].Missions.Count == 0)
+                {
+                    <div class="cw-cs-empty">@T("Empty", "该阵营暂无任务")</div>
+                }
+                else
+                {
+                    @foreach (var m in _factions[_active].Missions)
+                    {
+                        int id = _idOf[m];
+                        <button type="button" id="cw-cs-mi-@id"
+                                class="cw-cs-item @(_selectedId == id ? "on" : "")"
+                                style="--fcolor:@_factions[_active].Color"
+                                disabled="@(!m.Enabled)"
+                                @onclick="() => SelectMission(m)">
+                            <span class="cw-cs-idot"></span>
+                            <span class="cw-cs-iname">@m.GUIName</span>
+                            @if (!string.IsNullOrEmpty(m.TagAbbreviation))
+                            {
+                                <span class="cw-cs-itag">@m.TagAbbreviation</span>
+                            }
+                        </button>
+                    }
+                }
+            </div>
+        </aside>
+
+        <section class="cw-cs-stage">
+            <canvas @ref="_canvas" class="cw-cs-canvas"></canvas>
+            <canvas @ref="_link" class="cw-cs-link"></canvas>
+            <div class="cw-cs-vignette"></div>
+
+            @if (_fallback && _factions.Count > 0)
+            {
+                <div class="cw-cs-fb">
+                    <div class="cw-cs-fb-h">@T("Fallback", "3D 不可用，已切换为平面视图")</div>
+                    <div class="cw-cs-fb-grid">
+                        @foreach (var m in _factions[_active].Missions)
+                        {
+                            int id = _idOf[m];
+                            <button type="button" class="cw-cs-fb-node @(_selectedId == id ? "on" : "")"
+                                    disabled="@(!m.Enabled)" @onclick="() => SelectMission(m)">
+                                <span style="border-color:@_factions[_active].Color"></span>
+                                @m.GUIName
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (Selected is not null)
+            {
+                <div class="cw-cs-holo" id="cw-cs-holo">
+                    <div class="cw-cs-holo-corner tl"></div>
+                    <div class="cw-cs-holo-corner tr"></div>
+                    <div class="cw-cs-holo-corner bl"></div>
+                    <div class="cw-cs-holo-corner br"></div>
+                    <div class="cw-cs-holo-head">
+                        <span class="cw-cs-holo-kicker">@T("Detail", "MISSION BRIEFING")</span>
+                        <button type="button" class="cw-cs-holo-x" @onclick="ClearSelection" aria-label="close">✕</button>
+                    </div>
+                    <div class="cw-cs-holo-title">@Selected.GUIName</div>
+                    <div class="cw-cs-holo-meta">
+                        <span class="cw-cs-chip" style="--fcolor:@CurrentColor;color:@CurrentColorInk">@CurrentFactionLabel</span>
+                        @if (!string.IsNullOrEmpty(Selected.Tag))
+                        {
+                            <span class="cw-cs-tag">@Selected.Tag</span>
+                        }
+                        @if (Selected.IsCustomMission)
+                        {
+                            <span class="cw-cs-tag">@T("Custom", "自定义任务")</span>
+                        }
+                    </div>
+
+                    <div class="cw-cs-preview">
+                        @if (!string.IsNullOrEmpty(Selected.PreviewImage))
+                        {
+                            <img src="@Env.AssetUrl(Selected.PreviewImage)" alt="" onerror="this.style.display='none'" />
+                        }
+                        else
+                        {
+                            <div class="cw-cs-nopreview">
+                                <span class="cw-cs-radar"></span>
+                                <span>@T("NoPreview", "任务预览")</span>
+                            </div>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Selected.GUIDescription))
+                    {
+                        <div class="cw-cs-desc">@Selected.GUIDescription</div>
+                    }
+
+                    <div class="cw-cs-diff">
+                        <span class="cw-cs-diff-h">@T("Difficulty", "难度")</span>
+                        <div class="diff-seg">
+                            @foreach (int d in DifficultyLevels)
+                            {
+                                <button type="button" class="diff-btn @(Svc.Difficulty == d ? "on" : "")"
+                                        @onclick="() => SetDifficulty(d)">
+                                    @CampaignService.GetDifficultyName(d)
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="cw-cs-actions">
+                        <button type="button" class="mb-btn primary cw-cs-launch" disabled="@(!CanLaunch)"
+                                @onclick="OnStartGame">
+                            @T("Start", "开始任务")
+                        </button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="cw-cs-hint">
+                    <span class="cw-cs-hint-dot"></span>
+                    @T("Hint", "拖拽旋转 · 滚轮缩放 · 点击点位或左侧列表查看任务")
+                </div>
+            }
+        </section>
+    </div>
+</div>
+
+@code {
+    private sealed class Faction
+    {
+        /// <summary>Battle.ini 中任务 Group 值（如 btnSide1），也是阵营配置节名 BtnSide1。</summary>
+        public string Id = string.Empty;
+        public string Label = string.Empty;
+        public string Color = "#38e1ff";
+        /// <summary>BtnSideN 的序号，用于阵营排序；未配置为末尾。</summary>
+        public int Order = int.MaxValue;
+        public List<Mission> Missions { get; } = new();
+    }
+
+    private static readonly string[] Palette =
+    {
+        "#38e1ff", "#ffb347", "#ff5bd1", "#5bffa8", "#9b7bff", "#ff6b6b", "#ffe066", "#66d9ff"
+    };
+
+    private static readonly int[] DifficultyLevels =
+        { CampaignService.MinDifficulty, CampaignService.MinDifficulty + 1, CampaignService.MaxDifficulty };
+
+    private readonly List<Faction> _factions = new();
+    private readonly Dictionary<Mission, int> _idOf = new();
+    private readonly Dictionary<int, Mission> _missionById = new();
+
+    private int _active;
+    private int _selectedId = -1;
+    private int _missionCount;
+    private string _fingerprint = string.Empty;
+    private bool _mounted;
+    private bool _fallback;
+
+    private ElementReference _canvas;
+    private ElementReference _link;
+    private DotNetObjectReference<CwCampaignSandbox>? _self;
+    private bool _pendingLink;
+
+    private static string T(string key, string fallback) => CwText.T("CampaignSandbox." + key, fallback);
+
+    private Mission? Selected
+        => _selectedId >= 0 && _missionById.TryGetValue(_selectedId, out var m) ? m : null;
+
+    private Faction? SelectedFaction
+        => Selected is null ? null : _factions.FirstOrDefault(f => f.Missions.Contains(Selected));
+
+    private string CurrentFactionLabel => SelectedFaction?.Label ?? string.Empty;
+
+    private string CurrentColor => SelectedFaction?.Color ?? ActiveColor;
+
+    /// <summary>阵营色块上的文字颜色：深色阵营（如曜石黑）用亮白，浅色用深色。</summary>
+    private string CurrentColorInk => IsDarkColor(CurrentColor) ? "#eaffff" : "#061019";
+
+    private static bool IsDarkColor(string hex)
+    {
+        if (hex.Length != 7 || hex[0] != '#')
+            return false;
+
+        int r = Convert.ToInt32(hex.Substring(1, 2), 16);
+        int g = Convert.ToInt32(hex.Substring(3, 2), 16);
+        int b = Convert.ToInt32(hex.Substring(5, 2), 16);
+        return 0.299 * r + 0.587 * g + 0.114 * b < 110;
+    }
+
+    /// <summary>当前选中阵营（整页强调色跟随它）。</summary>
+    private string ActiveColor
+        => _active >= 0 && _active < _factions.Count ? _factions[_active].Color : Palette[0];
+
+    private bool CanLaunch
+        => Selected is not null && !string.IsNullOrEmpty(Selected.Scenario) && Selected.Enabled;
+
+    protected override void OnInitialized()
+    {
+        // 宿主 Campaign.razor 已订阅作弊弹窗并调用 Initialize；这里幂等重复一次，保证独立渲染时也有数据。
+        Svc.Changed += OnChanged;
+        Svc.Initialize();
+        Rebuild();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_mounted)
+        {
+            _mounted = true;
+            _self = DotNetObjectReference.Create(this);
+            await MountAsync();
+        }
+
+        // 信息框渲染完成后建立 3D 点位 → 浮框的引线
+        if (_pendingLink && Selected is not null && !_fallback)
+        {
+            _pendingLink = false;
+            try { await JS.InvokeVoidAsync("cwCs.link", "cw-cs-holo"); } catch { }
+        }
+    }
+
+    private async Task MountAsync()
+    {
+        // 注意：宿主内容伺服不解析 URL 查询串（?v= 会被当成路径的一部分返回 404），
+        // 因此这里只用纯路径；每次启动客户端端口会变，脚本缓存不会跨重启复用。
+        string threeUrl = Env.AssetUrl("Assets/three.min.js");
+        string sandboxUrl = Env.AssetUrl("cw-campaign-sandbox.js");
+        try
+        {
+            // 逐个字符串传参、载荷用 JSON 字符串，避免集合跨 JSInterop 的序列化差异
+            await JS.InvokeVoidAsync("cwUi.loadScripts", threeUrl, sandboxUrl);
+
+            bool ok = await JS.InvokeAsync<bool>("cwCs.mount", _canvas, _self, JsonSerializer.Serialize(BuildPayload()), _link);
+            _fallback = !ok;
+            if (ok)
+                Logger.LogInformation("战役沙盘已挂载：阵营 {Factions} 个、任务 {Missions} 个", _factions.Count, _missionCount);
+            else
+                Logger.LogWarning("战役沙盘挂载失败（three={Three} sandbox={Sandbox} err={Error}）",
+                    threeUrl, sandboxUrl, await SafeLastErrorAsync());
+        }
+        catch (Exception ex)
+        {
+            _fallback = true;
+            Logger.LogWarning(ex, "战役沙盘脚本加载失败：three={Three} sandbox={Sandbox} err={Error}",
+                threeUrl, sandboxUrl, await SafeLastErrorAsync());
+        }
+        StateHasChanged();
+    }
+
+    private async Task<string> SafeLastErrorAsync()
+    {
+        try { return await JS.InvokeAsync<string>("cwUi.lastError"); }
+        catch { return string.Empty; }
+    }
+
+    private object[] BuildPayload()
+        => _factions.Select(f => (object)new
+        {
+            label = f.Label,
+            color = f.Color,
+            missions = f.Missions.Select(m => new
+            {
+                id = _idOf[m],
+                name = m.GUIName,
+                enabled = m.Enabled
+            }).ToArray()
+        }).ToArray();
+
+    private string Fingerprint()
+        => string.Join("|", Svc.Missions.Select(m => m.GUIName + ":" + m.Scenario + ":" + m.Enabled));
+
+    private void Rebuild()
+    {
+        _factions.Clear();
+        _idOf.Clear();
+        _missionById.Clear();
+        _missionCount = 0;
+        _selectedId = -1;
+
+        IniDocument? battleIni = LoadBattleIni();
+
+        // 阵营配置在 [BtnSideN] 节（Description=名称、Color=主色），任务按各自节里的 Group 归入阵营。
+        // 注意：[ALLHD] 之类的标题行只是战役列表分界线，不作为阵营定义。
+        var byGroup = new Dictionary<string, Faction>(StringComparer.OrdinalIgnoreCase);
+        Faction? other = null;
+
+        foreach (var m in Svc.Missions)
+        {
+            if (string.IsNullOrEmpty(m.Scenario))
+                continue; // 分组标题行
+
+            string section = battleIni?.Get("Battles", m.CodeName) ?? m.CodeName;
+            string group = battleIni?.Get(section, "Group")?.Trim() ?? string.Empty;
+
+            Faction faction;
+            if (group.Length == 0)
+            {
+                other ??= AddFaction(byGroup, "other", T("Other", "其他"), Palette[0], int.MaxValue);
+                faction = other;
+            }
+            else
+            {
+                if (!byGroup.TryGetValue(group, out Faction? found))
+                {
+                    found = AddFaction(
+                        byGroup,
+                        group,
+                        ReadFactionLabel(battleIni, group),
+                        ReadFactionColor(battleIni, group) ?? Palette[_factions.Count % Palette.Length],
+                        ReadGroupOrder(group));
+                }
+                faction = found;
+            }
+
+            faction.Missions.Add(m);
+            int id = _missionCount++;
+            _idOf[m] = id;
+            _missionById[id] = m;
+        }
+
+        // 阵营顺序按 BtnSideN 的序号（盟军→苏联→尤里→华夏→升阳→思金）
+        if (_factions.Count > 1)
+        {
+            var ordered = _factions.OrderBy(f => f.Order).ToList();
+            _factions.Clear();
+            _factions.AddRange(ordered);
+        }
+
+        if (_factions.Count > 0 && _active >= _factions.Count)
+            _active = 0;
+
+        _fingerprint = Fingerprint();
+    }
+
+    private Faction AddFaction(Dictionary<string, Faction> byGroup, string id, string label, string color, int order)
+    {
+        var faction = new Faction { Id = id, Label = label, Color = color, Order = order };
+        _factions.Add(faction);
+        byGroup[id] = faction;
+        return faction;
+    }
+
+    private IniDocument? LoadBattleIni()
+    {
+        // 与宿主一致：优先 INI/Battle.ini，缺失时回退 BattleFS.ini
+        string primary = Env.GamePath("INI", "Battle.ini");
+        if (File.Exists(primary))
+            return IniDocument.Load(primary);
+
+        string fallback = Env.GamePath("INI", "BattleFS.ini");
+        return File.Exists(fallback) ? IniDocument.Load(fallback) : null;
+    }
+
+    /// <summary>阵营名称取 [BtnSideN] 的 Description，并走原版翻译键 INI:Sides:*（如 思金 → Scrin）。</summary>
+    private static string ReadFactionLabel(IniDocument? ini, string group)
+    {
+        string? raw = ini?.Get(group, "Description");
+        if (string.IsNullOrWhiteSpace(raw))
+            return group;
+
+        raw = raw.Trim();
+        return raw.L10N("INI:Sides:" + raw);
+    }
+
+    /// <summary>阵营主色取 [BtnSideN] 的 Color；支持 #RRGGBB / RRGGBB / #RGB。</summary>
+    private static string? ReadFactionColor(IniDocument? ini, string group)
+        => NormalizeColor(ini?.Get(group, "Color"));
+
+    /// <summary>BtnSideN 的序号（取组名末尾数字）。</summary>
+    private static int ReadGroupOrder(string group)
+    {
+        string digits = new(group.Where(char.IsDigit).ToArray());
+        return int.TryParse(digits, out int order) ? order : int.MaxValue;
+    }
+
+    private static string? NormalizeColor(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+
+        string s = raw.Trim();
+        if (s.StartsWith('#'))
+            s = s[1..];
+
+        if (s.Length == 3 && s.All(Uri.IsHexDigit))
+            s = string.Concat(s[0], s[0], s[1], s[1], s[2], s[2]);
+
+        if (s.Length != 6 || !s.All(Uri.IsHexDigit))
+            return null;
+
+        return "#" + s.ToUpperInvariant();
+    }
+
+    private async Task RemountAsync()
+    {
+        if (!_mounted)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("cwCs.dispose");
+            _fallback = !await JS.InvokeAsync<bool>("cwCs.mount", _canvas, _self, JsonSerializer.Serialize(BuildPayload()), _link);
+            if (!_fallback)
+                await JS.InvokeVoidAsync("cwCs.setFaction", Math.Max(0, _active));
+        }
+        catch
+        {
+            _fallback = true;
+        }
+    }
+
+    private async Task SetFaction(int index)
+    {
+        if (index < 0 || index >= _factions.Count)
+            return;
+
+        _active = index;
+        _selectedId = -1;
+        _pendingLink = false;
+        if (!_fallback)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("cwCs.unlink");
+                await JS.InvokeVoidAsync("cwCs.setFaction", index);
+            }
+            catch { }
+        }
+        StateHasChanged();
+    }
+
+    private async Task SetDifficulty(int difficulty)
+    {
+        Svc.SetDifficulty(difficulty);
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private async Task SelectMission(Mission mission)
+    {
+        if (!_idOf.TryGetValue(mission, out int id))
+            return;
+
+        Svc.SelectMission(mission);
+        _selectedId = id;
+        _pendingLink = true;
+        if (!_fallback)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("cwCs.select", id);
+                await JS.InvokeVoidAsync("cwCs.scrollToItem", id);
+            }
+            catch { }
+        }
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public Task OnMarker(int id)
+    {
+        if (!_missionById.TryGetValue(id, out var mission))
+            return Task.CompletedTask;
+
+        Svc.SelectMission(mission);
+        _selectedId = id;
+        _pendingLink = true;
+        _ = JS.InvokeVoidAsync("cwCs.scrollToItem", id);
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void ClearSelection()
+    {
+        _selectedId = -1;
+        _pendingLink = false;
+        if (!_fallback)
+        {
+            _ = JS.InvokeVoidAsync("cwCs.clearSelection");
+            _ = JS.InvokeVoidAsync("cwCs.unlink");
+        }
+        StateHasChanged();
+    }
+
+    private void OnChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            // 选中/难度变化不重建；只有任务列表内容变化（切换语言重载等）才重建并重挂沙盘
+            if (Fingerprint() != _fingerprint)
+            {
+                Rebuild();
+                await RemountAsync();
+            }
+            StateHasChanged();
+        });
+    }
+
+    private void OnStartGame()
+    {
+        try
+        {
+            Svc.StartGame();
+        }
+        catch (Exception ex)
+        {
+            _ = JS.InvokeVoidAsync("cncnet.toast", ex.Message, "err");
+        }
+    }
+
+    private void Back() => Nav.NavigateTo("/menu");
+
+    public void Dispose()
+    {
+        Svc.Changed -= OnChanged;
+        if (_mounted)
+            _ = JS.InvokeVoidAsync("cwCs.dispose");
+        _self?.Dispose();
+    }
+}

@@ -22,6 +22,9 @@ public sealed class CwUiPluginEntry : ICncNetPlugin
     public void RegisterServices(IPluginContext context)
     {
         CwEnvironment env = new(context.GameRoot, context.PluginDirectory);
+        // 插件目录相对游戏根的路径（供组件把自带 JS/贴图转成可加载 URL）
+        string pluginRel = Path.GetRelativePath(context.GameRoot, context.PluginDirectory).Replace('\\', '/');
+        env.AssetUrl = relative => context.ContentUrl(pluginRel + "/" + relative.Replace('\\', '/'));
         context.Services.AddSingleton(env);
         // 隧道列表来源：覆盖宿主 ITunnelListProvider（官方 → racw 镜像 → 内置名单，[CN] 优先）
         context.Services.AddSingleton<ITunnelListProvider, CwTunnelListProvider>();
@@ -54,8 +57,8 @@ public sealed class CwUiPluginEntry : ICncNetPlugin
         // 追加型槽位：设置页「游戏」分区末尾（Phobos 游戏内增强开关）
         ui.ContributeSlot("page.settings.game", typeof(Components.CwPhobosOptions));
 
-        // 追加型槽位：战役页任务列表（按阵营分组，替换内置扁平列表）
-        ui.ContributeSlot("page.campaign.aside", typeof(Components.CwCampaignGroups));
+        // 替换型槽位：战役页整体替换为全息战术沙盘（任务数据/启动仍走宿主 CampaignService）
+        ui.ReplaceSlot("page.campaign", typeof(Components.CwCampaignSandbox));
 
         // 追加型槽位：全局覆盖层宿主（小贴士 + 版本提示，DOM 由 cw-overlay.js 挂到 body）
         ui.ContributeSlot("layout.topbar", typeof(Components.CwOverlayHost));

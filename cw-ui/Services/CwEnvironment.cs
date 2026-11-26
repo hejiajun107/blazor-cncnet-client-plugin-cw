@@ -13,6 +13,9 @@ public sealed class CwEnvironment
 
     public string PluginDirectory { get; }
 
+    /// <summary>插件内文件 → 客户端可加载的 http URL（由宿主 ContentUrl 注入）。</summary>
+    public Func<string, string> AssetUrl { get; set; } = _ => string.Empty;
+
     public string GamePath(params string[] parts) => Combine(GameRoot, parts);
 
     public string PluginPath(params string[] parts) => Combine(PluginDirectory, parts);
